@@ -32,15 +32,12 @@ def tokenize(text)-> dict:
 
 def recursiveTokenize(directoryPath):
     """
-    Prints files if current directory if letter "D" sent as parameter
-    Else prints all files in directories and subdirectories if "R" is passed in
+    Recursively iterates all folders and foreach file, open file and tokenize the content
     """
     #try:
     for files in Path(directoryPath).iterdir():
         if files.is_file():
             directoryPath = Path(directoryPath)
-
-            #print(directoryPath / files.name)
             fullFilePath = directoryPath / files.name
 
             with open(fullFilePath, 'r') as content_file:
@@ -49,8 +46,9 @@ def recursiveTokenize(directoryPath):
 
                 url = jsonOBJ["url"]
                 htmlContent = jsonOBJ["content"]
-                #dictTokens = tokenize(htmlContent)
                 print(htmlContent)
+
+                dictTokens = tokenize(htmlContent)
 
 
     dir_list = [dI for dI in os.listdir(directoryPath) if Path(Path(directoryPath).joinpath(dI)).is_dir()]
