@@ -181,7 +181,7 @@ def mergeTokens():
                 # save updated values back to json
                 posting.seek(0) #reset to beginning of file to overwrite
                 jsonObj["freq"] = newFreq
-                jsonObj["listDocIDs"] = jsonListPostings
+                jsonObj["listDocIDs"] = jsonListPostings.sort()
                 posting.write(json.dumps(jsonObj))
         else:
             jsonObj = {"freq": 0, "listDocIDs": []}
