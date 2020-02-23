@@ -28,7 +28,8 @@ def getAllFilePaths(directoryPath: str) -> list:
                       Path(Path(directoryPath).joinpath(dI)).is_dir()]
 
     iDocID = 0
-    #what is this doing?
+    # getting all the .json file paths and adding them to a list to be processed by threads calling tokenize()
+    # also creates a hashtable that maps docID => filepath urls
     for directory in directory_list:
         #print(str(directory))
         for files in Path(directory).iterdir():
@@ -118,9 +119,7 @@ def writeHashTableToDisk(hashtable: dict) -> None:
     if not Path("partial_indexes").exists():
         Path("partial_indexes").mkdir()
     with open(os.path.join("partial_indexes", "hashtable.txt"), "w+") as hash:
-        for h,j in hashtable.items():
-            # writing to file line by line
-            hash.write(json.dumps(h)+" "+json.dumps(j)+"\n")
+        hash.write(json.dumps(hashtable))
 
 def buildPartialIndex(tokenDict):
     # make subdirectory for partial indexes
@@ -151,6 +150,50 @@ def parseJSONFiles(directoryPath: str) -> int:
     # Close the pool and wait for the work to finish
     pool.close()
     pool.join()
+
+
+# reads line by line of index.txt, and merges all the token frequencies, and collects list of DocIDs into a list for each token
+def mergeTokens():
+    indexTxt = open(os.path.join("partial_indexes", "index.txt"), 'r')
+
+    for line in indexTxt:
+        arrPosting = line.split(" : ")
+        wordToken = arrPosting[0].replace("'", "")
+        firstLetter = wordToken[0:1]
+
+        templist = arrPosting[1].replace("[", "").replace("]", "").replace("\n", "").split(", ")
+        docID = templist[0]
+        frequency = templist[1]
+
+        filePathFull = Path("partial_indexes") / firstLetter / (wordToken + ".json")
+
+        if filePathFull.is_file():
+            # file exists, then we read it out as json
+            with open(filePathFull, "r+") as posting:
+                data = posting.read()
+                jsonObj = json.loads(data)
+                jsonCount = jsonObj["freq"]
+                jsonListPostings = jsonObj["listDocIDs"]
+
+                newFreq = jsonCount + int(frequency)
+                jsonListPostings.append(docID)
+
+                # save updated values back to json
+                posting.seek(0) #reset to beginning of file to overwrite
+                jsonObj["freq"] = newFreq
+                jsonObj["listDocIDs"] = jsonListPostings
+                posting.write(json.dumps(jsonObj))
+        else:
+            jsonObj = {"freq": 0, "listDocIDs": []}
+            newFreq = jsonObj["freq"] + int(frequency)
+            newListID = [docID]
+
+            # save updated values back to json
+            jsonObj["freq"] = newFreq
+            jsonObj["listDocIDs"] = newListID
+            with open(filePathFull, "w+") as posting:
+                posting.write(json.dumps(jsonObj))
+
 
 def removeStopwords(list):
     stopWords = {"a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't",
@@ -214,7 +257,8 @@ def boolAnd():
     for k in sorted(output.keys()):
         if output[k] == keys.__len__():
             print(k)
-def subDir():
+
+def subDir(filePath):
     pathDict = dict()
     # made this work for everyone
     pathD = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
@@ -234,7 +278,7 @@ def subDir():
         # print(path)
         # file = open(Path(f"C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\partial_indexes\\{path}\\{path}.txt"),"w+")
         # art windows
-        file = open(Path(f"C:\\Users\\aghar\\Documents\\121_web\\CS121_InvertedIndex\\partial_indexes\\{path}\\{path}.txt"),"w+")
+        file = open(Path(f"{filePath}\\{path}\\{path}.txt"),"w+")
         #art linux
         # file = open(Path(f"/home/anon/Documents/121/CS121_InvertedIndex/partial_indexes/{path}/{path}.txt"), "w+")
         for line in pathDict[path]:
@@ -247,22 +291,26 @@ if __name__ == '__main__':
     #folderPath = "C:\\Users\\aljon\\Documents\\CS121_InvertedIndex\\DEV"
 
     # William
-    #folderPath = "C:\\Anaconda3\\envs\\Projects\\DEV"
+    folderPath = "C:\\Anaconda3\\envs\\Projects\\DEV"
 
     # Jerome
     #folderPath = "C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\DEV"
 
 
-    #Art
-    #windows
-    folderPath = "C:\\Users\\aghar\\Downloads\\DEV"
-    #linux
-    #folderPath = "/home/anon/Downloads/DEV"
+    # #Art
+    # #windows
+    # folderPath = "C:\\Users\\aghar\\Downloads\\DEV"
+    # #linux
+    # #folderPath = "/home/anon/Downloads/DEV"
+
     createAlphabetFolders()
 
     iDocsCount = parseJSONFiles(folderPath)
-    # split into subdirectories after index finishes
-    subDir()
-    print("Number of docs = ", iDocsCount)
+
+    mergeTokens()
+    # # split into subdirectories after index finishes
+    #subDir(folder2)
+
+    #print("Number of docs = ", iDocsCount)
     print("-----DONE!-----")
 
