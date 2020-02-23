@@ -82,6 +82,27 @@ def tokenize(fileItem: list) -> dict:
 
         # write partial indexes to text files ("store on disk")
         buildPartialIndex(tokenDict)
+
+        partialIndex = "C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\partial_indexes"  # NO IDEA HOW TO MAKE THIS THE SAME FOR EVERYONE
+        paths = [f.path for f in os.scandir(partialIndex) if f.is_dir()]
+
+        pathDict = dict()
+
+        for path in paths:
+            pathDict[path[-1]] = []
+
+        indexTxt = open(os.path.join("partial_indexes", "index.txt"), 'r')
+
+        for line in indexTxt:
+            if line[0] in pathDict:
+                pathDict[line[0]].append(line)
+
+        for path in paths:
+            file = open(Path(f"C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\partial_indexes\\{path}\\{path}.txt"),"w+")
+            for line in pathDict[path]:
+                file.write(line)
+            file.close()
+
         # merge later
 
         # # change the code here to save Postings (tdif, frequency count, linkedList of DocID's, etc)
