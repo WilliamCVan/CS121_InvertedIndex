@@ -89,29 +89,6 @@ def tokenize(fileItem: list) -> dict:
         #partialIndex = "C:\\Users\\aghar\\Documents\\121_web\\CS121_InvertedIndex\\partial_indexes"
         #paths = [f.path for f in os.scandir(partialIndex) if f.is_dir()]
 
-        pathDict = dict()
-        #made this work for everyone
-        pathD = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
-        for path in pathD:
-            pathDict[path[-1]] = []
-        #print(pathDict)
-        indexTxt = open(os.path.join("partial_indexes", "index.txt"), 'r')
-
-        for line in indexTxt:
-            #print(line[0])
-            if line[0] in pathDict:
-                #print("hi")
-                pathDict[line[0]].append(line)
-
-        for path in pathDict.keys():
-            #print(path)
-            #file = open(Path(f"C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\partial_indexes\\{path}\\{path}.txt"),"w+")
-            file = open(Path(f"C:\\Users\\aghar\\Documents\\121_web\\CS121_InvertedIndex\\partial_indexes\\{path}\\{path}.txt"),"w+")
-            for line in pathDict[path]:
-                #print(f"Writing {line} into file {path}")
-                file.write(line)
-            file.close()
-
         # merge later
 
         # # change the code here to save Postings (tdif, frequency count, linkedList of DocID's, etc)
@@ -233,10 +210,37 @@ def boolAnd():
                 output[key] += 1
             else:
                 output[key] = 1
-    
+
     for k in sorted(output.keys()):
         if output[k] == keys.__len__():
             print(k)
+def subDir():
+    pathDict = dict()
+    # made this work for everyone
+    pathD = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
+             'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+    for path in pathD:
+        pathDict[path[-1]] = []
+    # print(pathDict)
+    indexTxt = open(os.path.join("partial_indexes", "index.txt"), 'r')
+
+    for line in indexTxt:
+        # print(line[0])
+        if line[0] in pathDict:
+            # print("hi")
+            pathDict[line[0]].append(line)
+
+    for path in pathDict.keys():
+        # print(path)
+        # file = open(Path(f"C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\partial_indexes\\{path}\\{path}.txt"),"w+")
+        # art windows
+        file = open(Path(f"C:\\Users\\aghar\\Documents\\121_web\\CS121_InvertedIndex\\partial_indexes\\{path}\\{path}.txt"),"w+")
+        #art linux
+        # file = open(Path(f"/home/anon/Documents/121/CS121_InvertedIndex/partial_indexes/{path}/{path}.txt"), "w+")
+        for line in pathDict[path]:
+            # print(f"Writing {line} into file {path}")
+            file.write(line)
+        file.close()
 
 if __name__ == '__main__':
     # Aljon
@@ -252,9 +256,13 @@ if __name__ == '__main__':
     #Art
     #windows
     folderPath = "C:\\Users\\aghar\\Downloads\\DEV"
+    #linux
+    #folderPath = "/home/anon/Downloads/DEV"
     createAlphabetFolders()
 
     iDocsCount = parseJSONFiles(folderPath)
+    # split into subdirectories after index finishes
+    subDir()
     print("Number of docs = ", iDocsCount)
     print("-----DONE!-----")
 
