@@ -4,6 +4,8 @@ import os
 import re
 import json
 from bs4 import BeautifulSoup, Comment
+import string
+
 
 class Posting:
     def __init__(self, docID, freqCount):
@@ -85,10 +87,28 @@ def tokenize(fileItem: list) -> dict:
         # # change the code here to save Postings (tdif, frequency count, linkedList of DocID's, etc)
         # return tokenDict
 
+# write json file that maps the docID's to file path urls
+def createAlphabetFolders() -> None:
+    strAlphabet = string.ascii_lowercase    #'abcdefghijklmnopqrstuvwxyz'
+    listAlphabet = list(string.ascii_lowercase)
+
+    if not Path("partial_indexes").exists():
+        Path("partial_indexes").mkdir()
+    for letter in listAlphabet:
+        pathFull = Path("partial_indexes") / letter
+        if not pathFull.exists():
+            pathFull.mkdir()
+
+    strNumbers = "0123456789"
+    listNumbers = list(strNumbers)
+    for number in listNumbers:
+        pathFull = Path("partial_indexes") / number
+        if not pathFull.exists():
+            pathFull.mkdir()
 
 # write json file that maps the docID's to file path urls
 def writeHashTableToDisk(hashtable: dict) -> None:
-    if not os.path.exists("partial_indexes"):
+    if not Path("partial_indexes").exists():
         Path("partial_indexes").mkdir()
     with open(os.path.join("partial_indexes", "hashtable.txt"), "w+") as hash:
         hash.write(json.dumps(hashtable))
@@ -124,14 +144,14 @@ def parseJSONFiles(directoryPath: str) -> int:
     pool.close()
     pool.join()
 
-    return
-
 if __name__ == '__main__':
     # Aljon
     #folderPath = "C:\\Users\\aljon\\Documents\\CS121_InvertedIndex\\DEV"
 
     # William
     folderPath = "C:\\Anaconda3\\envs\\Projects\\DEV"
+
+    createAlphabetFolders()
 
     iDocsCount = parseJSONFiles(folderPath)
     print("Number of docs = ", iDocsCount)
