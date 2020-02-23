@@ -1,4 +1,4 @@
-from multiprocessing.dummy import Pool as ThreadPool
+from multiprocessing import Pool
 from pathlib import Path
 import os
 import re
@@ -151,8 +151,7 @@ def parseJSONFiles(directoryPath: str) -> int:
 
     # https://stackoverflow.com/questions/2846653/how-can-i-use-threading-in-python
     # Make the Pool of workers
-    pool = ThreadPool(20)
-
+    pool = Pool(processes=20)
     # Each worker get a directory from list above, and begin tokenizing all json files inside
     results = pool.map(tokenize, listFilePaths)
 
