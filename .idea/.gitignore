@@ -1,4 +1,7 @@
 # Default ignored files
 /workspace.xml
-developer/
-/developer
+\partial_indexes
+\partial_indexes\
+/partial_indexes/
+partial_indexes/
+/partial_indexes
