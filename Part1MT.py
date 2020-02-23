@@ -97,9 +97,10 @@ def tokenize(fileItem: list) -> dict:
             if line[0] in pathDict:
                 pathDict[line[0]].append(line)
 
-        for path in paths:
+        for path in pathDict.keys():
             file = open(Path(f"C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\partial_indexes\\{path}\\{path}.txt"),"w+")
             for line in pathDict[path]:
+                #print(f"Writing {line} into file {path}")
                 file.write(line)
             file.close()
 
@@ -170,8 +171,10 @@ if __name__ == '__main__':
     #folderPath = "C:\\Users\\aljon\\Documents\\CS121_InvertedIndex\\DEV"
 
     # William
-    folderPath = "C:\\Anaconda3\\envs\\Projects\\DEV"
+    #folderPath = "C:\\Anaconda3\\envs\\Projects\\DEV"
 
+    # Jerome
+    folderPath = "C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\DEV"
     createAlphabetFolders()
 
     iDocsCount = parseJSONFiles(folderPath)
