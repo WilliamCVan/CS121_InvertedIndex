@@ -303,10 +303,10 @@ def subDir(filePath):
 
 if __name__ == '__main__':
     # Aljon
-    #folderPath = "C:\\Users\\aljon\\Documents\\CS121_InvertedIndex\\DEV"
+    folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
 
     # William
-    folderPath = "C:\\Anaconda3\\envs\\Projects\\DEV"
+    #folderPath = "C:\\Anaconda3\\envs\\Projects\\DEV"
 
     # Jerome
     #folderPath = "C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\DEV"
@@ -320,7 +320,7 @@ if __name__ == '__main__':
 
     createAlphabetFolders()
 
-    iDocsCount = parseJSONFiles(folderPath)
+    #iDocsCount = parseJSONFiles(folderPath)
 
     mergeTokens()
     # # split into subdirectories after index finishes
