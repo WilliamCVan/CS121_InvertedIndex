@@ -77,6 +77,18 @@ def tokenize(fileItem: list) -> dict:
         for word in listTemp:
             if (len(word) == 0):  # ignore empty strings
                 continue
+            if (len(word) > 30):  # ignore words like ivborw0kggoaaaansuheugaaabaaaaaqcamaaaaolq9taaaaw1bmveuaaaacagiahb0bhb0bhr0ahb4chh8dhx8eicifisiukt4djzankywplcwhltkfpl8nn0clpvm9qumvvxu8wnvbrezesepkyxvwzxbpbnjqb3jtcxruc3vvdxhzdnhyehtefjvdf5xtjkv
+                continue
+            if (word.startswith("'")):  # ignore words that start with '
+                continue
+            if (len(word) == 1 and word.isalpha()):
+                continue
+            try:
+                int(word)
+                word = str(int(word))  # get rid of numbers starting with 0
+            except ValueError:
+                pass
+
             if word in tokenDict:
                 tokenDict.get(word).incFreq()
             else:
@@ -154,45 +166,48 @@ def parseJSONFiles(directoryPath: str) -> int:
 
 # reads line by line of index.txt, and merges all the token frequencies, and collects list of DocIDs into a list for each token
 def mergeTokens():
-    indexTxt = open(os.path.join("partial_indexes", "index.txt"), 'r')
+    try:
+        indexTxt = open(os.path.join("partial_indexes", "index.txt"), 'r')
 
-    for line in indexTxt:
-        arrPosting = line.split(" : ")
-        wordToken = arrPosting[0].replace("'", "")
-        firstLetter = wordToken[0:1]
+        for line in indexTxt:
+            arrPosting = line.split(" : ")
+            wordToken = arrPosting[0].replace("'", "")
+            firstLetter = wordToken[0:1]
 
-        templist = arrPosting[1].replace("[", "").replace("]", "").replace("\n", "").split(", ")
-        docID = templist[0]
-        frequency = templist[1]
+            templist = arrPosting[1].replace("[", "").replace("]", "").replace("\n", "").split(", ")
+            docID = templist[0]
+            frequency = templist[1]
 
-        filePathFull = Path("partial_indexes") / firstLetter / (wordToken + ".json")
+            filePathFull = Path("partial_indexes") / firstLetter / (wordToken + ".json")
 
-        if filePathFull.is_file():
-            # file exists, then we read it out as json
-            with open(filePathFull, "r+") as posting:
-                data = posting.read()
-                jsonObj = json.loads(data)
-                jsonCount = jsonObj["freq"]
-                jsonListPostings = jsonObj["listDocIDs"]
+            if filePathFull.is_file():
+                # file exists, then we read it out as json
+                with open(filePathFull, "r+") as posting:
+                    data = posting.read()
+                    jsonObj = json.loads(data)
+                    jsonCount = jsonObj["freq"]
+                    jsonListPostings = jsonObj["listDocIDs"]
 
-                newFreq = jsonCount + int(frequency)
-                jsonListPostings.append(docID)
+                    newFreq = jsonCount + int(frequency)
+                    jsonListPostings.append(docID)
+
+                    # save updated values back to json
+                    posting.seek(0) #reset to beginning of file to overwrite
+                    jsonObj["freq"] = newFreq
+                    jsonObj["listDocIDs"] = sorted(jsonListPostings)
+                    posting.write(json.dumps(jsonObj))
+            else:
+                jsonObj = {"freq": 0, "listDocIDs": []}
+                newFreq = jsonObj["freq"] + int(frequency)
+                newListID = [docID]
 
                 # save updated values back to json
-                posting.seek(0) #reset to beginning of file to overwrite
                 jsonObj["freq"] = newFreq
-                jsonObj["listDocIDs"] = jsonListPostings.sort()
-                posting.write(json.dumps(jsonObj))
-        else:
-            jsonObj = {"freq": 0, "listDocIDs": []}
-            newFreq = jsonObj["freq"] + int(frequency)
-            newListID = [docID]
-
-            # save updated values back to json
-            jsonObj["freq"] = newFreq
-            jsonObj["listDocIDs"] = newListID
-            with open(filePathFull, "w+") as posting:
-                posting.write(json.dumps(jsonObj))
+                jsonObj["listDocIDs"] = newListID
+                with open(filePathFull, "w+") as posting:
+                    posting.write(json.dumps(jsonObj))
+    except:
+        pass
 
 
 def removeStopwords(list):
