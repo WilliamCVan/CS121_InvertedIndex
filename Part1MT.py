@@ -1,4 +1,4 @@
-from multiprocessing.dummy import Pool as ThreadPool
+from multiprocessing import Pool
 from pathlib import Path
 import os
 import re
@@ -151,8 +151,7 @@ def parseJSONFiles(directoryPath: str) -> int:
 
     # https://stackoverflow.com/questions/2846653/how-can-i-use-threading-in-python
     # Make the Pool of workers
-    pool = ThreadPool(20)
-
+    pool = Pool(processes=20)
     # Each worker get a directory from list above, and begin tokenizing all json files inside
     results = pool.map(tokenize, listFilePaths)
 
@@ -166,48 +165,48 @@ def parseJSONFiles(directoryPath: str) -> int:
 
 # reads line by line of index.txt, and merges all the token frequencies, and collects list of DocIDs into a list for each token
 def mergeTokens():
-    try:
         indexTxt = open(os.path.join("partial_indexes", "index.txt"), 'r')
 
         for line in indexTxt:
-            arrPosting = line.split(" : ")
-            wordToken = arrPosting[0].replace("'", "")
-            firstLetter = wordToken[0:1]
+            try:
+                arrPosting = line.split(" : ")
+                wordToken = arrPosting[0].replace("'", "")
+                firstLetter = wordToken[0:1]
 
-            templist = arrPosting[1].replace("[", "").replace("]", "").replace("\n", "").split(", ")
-            docID = templist[0]
-            frequency = templist[1]
+                templist = arrPosting[1].replace("[", "").replace("]", "").replace("\n", "").split(", ")
+                docID = templist[0]
+                frequency = templist[1]
 
-            filePathFull = Path("partial_indexes") / firstLetter / (wordToken + ".json")
+                filePathFull = Path("partial_indexes") / firstLetter / (wordToken + ".json")
 
-            if filePathFull.is_file():
-                # file exists, then we read it out as json
-                with open(filePathFull, "r+") as posting:
-                    data = posting.read()
-                    jsonObj = json.loads(data)
-                    jsonCount = jsonObj["freq"]
-                    jsonListPostings = jsonObj["listDocIDs"]
+                if filePathFull.is_file():
+                    # file exists, then we read it out as json
+                    with open(filePathFull, "r+") as posting:
+                        data = posting.read()
+                        jsonObj = json.loads(data)
+                        jsonCount = jsonObj["freq"]
+                        jsonListPostings = jsonObj["listDocIDs"]
 
-                    newFreq = jsonCount + int(frequency)
-                    jsonListPostings.append(docID)
+                        newFreq = jsonCount + int(frequency)
+                        jsonListPostings.append(docID)
+
+                        # save updated values back to json
+                        posting.seek(0) #reset to beginning of file to overwrite
+                        jsonObj["freq"] = newFreq
+                        jsonObj["listDocIDs"] = sorted(jsonListPostings)
+                        posting.write(json.dumps(jsonObj))
+                else:
+                    jsonObj = {"freq": 0, "listDocIDs": []}
+                    newFreq = jsonObj["freq"] + int(frequency)
+                    newListID = [docID]
 
                     # save updated values back to json
-                    posting.seek(0) #reset to beginning of file to overwrite
                     jsonObj["freq"] = newFreq
-                    jsonObj["listDocIDs"] = sorted(jsonListPostings)
-                    posting.write(json.dumps(jsonObj))
-            else:
-                jsonObj = {"freq": 0, "listDocIDs": []}
-                newFreq = jsonObj["freq"] + int(frequency)
-                newListID = [docID]
-
-                # save updated values back to json
-                jsonObj["freq"] = newFreq
-                jsonObj["listDocIDs"] = newListID
-                with open(filePathFull, "w+") as posting:
-                    posting.write(json.dumps(jsonObj))
-    except:
-        pass
+                    jsonObj["listDocIDs"] = newListID
+                    with open(filePathFull, "w+") as posting:
+                        posting.write(json.dumps(jsonObj))
+            except:
+                continue
 
 
 def removeStopwords(list):
