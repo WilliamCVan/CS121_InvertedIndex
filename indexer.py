@@ -249,7 +249,8 @@ def subDir(filePath):
 
 if __name__ == '__main__':
     # Aljon
-    folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
+    #folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
+    folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
 
     # William
     #folderPath = "C:\\Anaconda3\\envs\\Projects\\DEV"

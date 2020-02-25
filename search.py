@@ -11,7 +11,7 @@ import string
 
 # Takes in query as str. Returns list of docs that match the AND query
 def simpleBoolAnd(query):
-    results = list()
+    results = set()
     for q in queryList:
         q = q.lower()
 
@@ -23,14 +23,20 @@ def simpleBoolAnd(query):
         #subdir = f'C:\\Users\\aghar\\Documents\\121_web\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
 
         # Aljon
-        subdir = f'C:\\Users\\aljon\\Documents\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
+        #subdir = f'C:\\Users\\aljon\\Documents\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
+        subdir = f'C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
         #####
 
         # Open directory with correct first character that has our indexed json files.
         for filename in os.listdir(subdir):
             if filename.split('.')[0] == word:
+
+                #Add list of docIDs for each query term to a set
                 with open(os.path.join(subdir, filename), 'r') as jsonData:
-                    results.append(json.load(jsonData))
+                    data = json.load(jsonData)
+                    print(data)
+                    for docID in data['listDocIDs']:
+                        results.add(docID)
     return results
 
     '''
@@ -68,7 +74,7 @@ def simpleBoolAnd(query):
     '''
 
 
-#Cleans up query by removing stopwords.
+#Cleans up query by removing stopwords. Also changes query from str to list<str>
 def removeStopwords(query):
     stopWords = {"a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't",
                  "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by",
@@ -103,6 +109,7 @@ if __name__ == '__main__':
     #####
     # Aljon
     #folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
+    foldePath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
 
     # William
     #folderPath = "C:\\Anaconda3\\envs\\Projects\\DEV"
@@ -124,5 +131,5 @@ if __name__ == '__main__':
 
     print("\n------------ Full Doc List ------------\n")
     for r in results:
-        print(str(r) + "\n")
-    print("------------ DONE! ------------\n")
+        print(str(r))
+    print("\n------------ DONE! ------------\n")
