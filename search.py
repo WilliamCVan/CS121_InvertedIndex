@@ -23,8 +23,8 @@ def simpleBoolAnd(query):
         #subdir = f'C:\\Users\\aghar\\Documents\\121_web\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
 
         # Aljon
-        #subdir = f'C:\\Users\\aljon\\Documents\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
-        subdir = f'C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
+        subdir = f'C:\\Users\\aljon\\Documents\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
+        #subdir = f'C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
         #####
 
         # Open directory with correct first character that has our indexed json files.
@@ -36,7 +36,7 @@ def simpleBoolAnd(query):
                     data = json.load(jsonData)
                     print(data)
                     for docID in data['listDocIDs']:
-                        results.add(docID)
+                        results.add(int(docID))
     return results
 
     '''
@@ -130,6 +130,6 @@ if __name__ == '__main__':
     results = simpleBoolAnd(query)
 
     print("\n------------ Full Doc List ------------\n")
-    for r in results:
+    for r in sorted(results):
         print(str(r))
     print("\n------------ DONE! ------------\n")
