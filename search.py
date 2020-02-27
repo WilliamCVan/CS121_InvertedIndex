@@ -9,110 +9,105 @@ import string
 
 #DOC_COUNT = 55393
 
+# returns unique set of file urls from hasthtable.txt
+def reduceResult(listOfSets, folderPath):
+    listUrls = list()  # holds unique file paths of .json files
+
+    hashSet = None
+    hashTablePath = Path(folderPath) / "hashtable.txt"
+    with open(hashTablePath, "r") as file:
+        data = file.read()
+        hashSet = json.loads(data)
+
+    tempSet = None
+    for setObjs in listOfSets:
+        #we initialize our tempset if first iteration of loop to first set in list
+        if tempSet == None:
+            tempSet = setObjs
+            continue
+
+        tempSet = tempSet.intersection(setObjs)
+
+    for docID in tempSet:
+        fileUrl = hashSet[docID]
+        listUrls.append(fileUrl)
+
+    return listUrls
+
 # Takes in query as str. Returns list of docs that match the AND query
-def simpleBoolAnd(query):
-    results = set()
-    for q in queryList:
-        q = q.lower()
+def simpleBoolAnd(query, folderPath):
+    listOfSets = list()
+    queryList = set()   #set because if user types in duplicate term, we won't have to open file twice
+    tempList = query.strip().lower().replace("'", "").split(" ")
 
-    for i, word in enumerate(query):
-        charPath = query[i][0] #Get 1st char of current word, use to find subdir
+    for word in tempList:
+        if word not in stopWords:
+            queryList.add(word)
 
-        #####
-        # ???
-        #subdir = f'C:\\Users\\aghar\\Documents\\121_web\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
+    print("Cleaned query tokens:")
+    print(queryList) # query tokens with stopwords removed and replacing apostrohe and lower()
 
-        # Aljon
-        subdir = f'C:\\Users\\aljon\\Documents\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
-        #subdir = f'C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
-        #####
+    #convert set to list to enumerate
+    queryList = list(queryList)
 
-        # Open directory with correct first character that has our indexed json files.
-        for filename in os.listdir(subdir):
-            if filename.split('.')[0] == word:
+    for word in queryList:
+        charPath = word[0] #Get 1st char of current word, use to find subdir
 
-                #Add list of docIDs for each query term to a set
-                with open(os.path.join(subdir, filename), 'r') as jsonData:
-                    data = json.load(jsonData)
-                    print(data)
-                    for docID in data['listDocIDs']:
-                        results.add(int(docID))
-    return results
+        # get the full file path of the indexed .json file
+        jsonFilePath = str(Path(folderPath) / charPath / word) + ".json"
 
-    '''
-    keys = dict()
-    for k in file2:
-        merge = dict()
-        k.lower()
-        path = k[0]
+        try:
+            with open(jsonFilePath, "r") as file:
+                data = file.read()
+                jsonObj = json.loads(data)
 
-        for y in file:
-            if k.rstrip() == y.split(" ", 1)[0]:
-                temp = y.split("[", 1)[1]
-                docID = temp.split(",", 1)[0]
-                wordCount = y.split(",", 1)[1]
-                wordCount = wordCount.split("]", 1)[0]
-                # print("docID "+docID+" -> wordCount"+wordCount)
-                merge[docID] = wordCount
-                # print(merge)
-                # print(docID.get(docID).show())
-        file.close()
-        if merge.__len__() != 0:
-            keys[k.rstrip()] = merge
+                listDocs = jsonObj["listDocIDs"]
+                tempSet = set(listDocs)
 
-    output = dict()
-    for d in keys.values():
-        for key in d:
-            if key in output:
-                output[key] += 1
-            else:
-                output[key] = 1
+                listOfSets.append(tempSet)
+        except:
+            pass
 
-    for k in sorted(output.keys()):
-        if output[k] == keys.__len__():
-            print(k)
-    '''
-
+    return reduceResult(listOfSets, folderPath)
 
 #Cleans up query by removing stopwords. Also changes query from str to list<str>
-def removeStopwords(query):
-    stopWords = {"a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't",
-                 "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by",
-                 "can't",
-                 "cannot", "could", "couldn't", "did", "didn't", "do", "does", "doesn't", "doing", "don't", "down",
-                 "during",
-                 "each", "few", "for", "from", "further", "had", "hadn't", "has", "hasn't", "have", "haven't", "having",
-                 "he", "he'd",
-                 "he'll", "he's", "her", "here", "here's", "hers", "herself", "him", "himself", "his", "how", "how's",
-                 "i", "i'd", "i'll",
-                 "i'm", "i've", "if", "in", "into", "is", "isn't", "it", "it's", "its", "itself", "let's", "me", "more",
-                 "most", "mustn't", "my",
-                 "myself", "no", "nor", "not", "of", "off", "on", "once", "only", "or", "other", "ought", "our", "ours",
-                 "ourselves", "out", "over",
-                 "own", "same", "shan't", "she", "she'd", "she'll", "she's", "should", "shouldn't", "so", "some",
-                 "such", "than", "that", "that's",
-                 "the", "their", "theirs", "them", "themselves", "then", "there", "there's", "these", "they", "they'd",
-                 "they'll", "they're", "they've",
-                 "this", "those", "through", "to", "too", "under", "until", "up", "very", "was", "wasn't", "we", "we'd",
-                 "we'll", "we're", "we've", "were", "weren't",
-                 "what", "what's", "when", "when's", "where", "where's", "which", "while", "who", "who's", "whom",
-                 "why", "why's", "with", "won't", "would", "wouldn't",
-                 "you", "you'd", "you'll", "you're", "you've", "your", "yours", "yourself", "yourselves"}
-    queryList = list()
-    for word in query:
-        if word not in stopWords:
-            queryList.append(word)
-    return queryList
+stopWords = {"a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't",
+             "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by",
+             "can't",
+             "cannot", "could", "couldn't", "did", "didn't", "do", "does", "doesn't", "doing", "don't", "down",
+             "during",
+             "each", "few", "for", "from", "further", "had", "hadn't", "has", "hasn't", "have", "haven't", "having",
+             "he", "he'd",
+             "he'll", "he's", "her", "here", "here's", "hers", "herself", "him", "himself", "his", "how", "how's",
+             "i", "i'd", "i'll",
+             "i'm", "i've", "if", "in", "into", "is", "isn't", "it", "it's", "its", "itself", "let's", "me", "more",
+             "most", "mustn't", "my",
+             "myself", "no", "nor", "not", "of", "off", "on", "once", "only", "or", "other", "ought", "our", "ours",
+             "ourselves", "out", "over",
+             "own", "same", "shan't", "she", "she'd", "she'll", "she's", "should", "shouldn't", "so", "some",
+             "such", "than", "that", "that's",
+             "the", "their", "theirs", "them", "themselves", "then", "there", "there's", "these", "they", "they'd",
+             "they'll", "they're", "they've",
+             "this", "those", "through", "to", "too", "under", "until", "up", "very", "was", "wasn't", "we", "we'd",
+             "we'll", "we're", "we've", "were", "weren't",
+             "what", "what's", "when", "when's", "where", "where's", "which", "while", "who", "who's", "whom",
+             "why", "why's", "with", "won't", "would", "wouldn't",
+             "you", "you'd", "you'll", "you're", "you've", "your", "yours", "yourself", "yourselves"}
+
 
 
 if __name__ == '__main__':
     #####
     # Aljon
     #folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
-    foldePath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
+    #foldePath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
+    # Aljon
+    # subdir = f'C:\\Users\\aljon\\Documents\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
+    # subdir = f'C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
+    #####
 
     # William
-    #folderPath = "C:\\Anaconda3\\envs\\Projects\\DEV"
+    folderPath = "C:\\1_Repos\\developer\\partial_indexes"
 
     # Jerome
     #folderPath = "C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\DEV"
@@ -123,13 +118,15 @@ if __name__ == '__main__':
     # linux
     #folderPath = "/home/anon/Downloads/DEV"
     #####
+    #####
+    # ???
+    # subdir = f'C:\\Users\\aghar\\Documents\\121_web\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
 
-    query = input("Enter a search query:").split()
-    queryList = removeStopwords(query)
-    print("Final query: " + str(queryList) + "\n")
-    results = simpleBoolAnd(query)
+    query = input("Enter a search query:")
+    # machine learning
 
+    results = simpleBoolAnd(query, folderPath)
     print("\n------------ Full Doc List ------------\n")
-    for r in sorted(results):
-        print(str(r))
+    for fileUrl in sorted(results):
+        print(fileUrl)
     print("\n------------ DONE! ------------\n")

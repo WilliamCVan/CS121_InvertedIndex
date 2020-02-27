@@ -5,7 +5,10 @@ import re
 import json
 from bs4 import BeautifulSoup, Comment
 import string
-
+import nltk
+nltk.download('punkt')
+from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
 
 # Data Structures
 class Posting:
@@ -157,6 +160,8 @@ def tokenize(fileItem: list) -> dict:
         varTemp = soup.get_text()
 
         listTemp = re.split(r"[^a-z0-9']+", varTemp.lower())
+        ps = PorterStemmer()
+
         for word in listTemp:
             if (len(word) == 0):  # ignore empty strings
                 continue
@@ -170,6 +175,8 @@ def tokenize(fileItem: list) -> dict:
                 word = str(int(word))  # get rid of numbers starting with 0 / Aljon -> "why?"
             except ValueError:
                 pass
+
+            word = ps.stem(word)    # run Porter stemmer on token
 
             if word in tokenDict:
                 tokenDict.get(word).incFreq()
@@ -216,7 +223,7 @@ if __name__ == '__main__':
     print("Creating partial index folders...")
     createPartialIndexes()
     print("Parsing JSON files, creating index.txt...")
-    #parseJSONFiles(folderPath)
+    parseJSONFiles(folderPath)
     print("Merging tokens, organizing files into partial index folders")
     mergeTokens()
     print("-----DONE!-----")
