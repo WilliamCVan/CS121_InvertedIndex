@@ -6,7 +6,6 @@ r = redis.Redis(host="localhost",port=6379,db=0, decode_responses=True)
 
 HASH_SAME = "hashSame"
 UNIQUE_URL = "uniqueURL"
-REDIS_INSTALLED = False
 
 def isHashSame(varTemp) -> bool:
     if r.sismember(HASH_SAME, varTemp):

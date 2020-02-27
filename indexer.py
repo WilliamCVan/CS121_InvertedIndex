@@ -160,15 +160,13 @@ def tokenize(fileItem: list) -> None:
         varTemp = soup.get_text()
 
 
+        # return if html text has identical hash
+        if util.isHashSame(varTemp):
+            return
 
-        ##### CHANGE [REDIS_INSTALLED = True] in utils.py if you have redis installed #####
-        if util.REDIS_INSTALLED:
-            if util.isHashSame(varTemp):
-                return #return if html text has identical hash
-
-            # add unique url to redis
-            urlContent = jsonOBJ["url"]
-            util.addUniqueURL(urlContent)
+        # add unique url to redis
+        urlContent = jsonOBJ["url"]
+        util.addUniqueURL(urlContent)
 
 
         listTemp = re.split(r"[^a-z0-9']+", varTemp.lower())
