@@ -95,6 +95,7 @@ stopWords = {"a", "about", "above", "after", "again", "against", "all", "am", "a
              "you", "you'd", "you'll", "you're", "you've", "your", "yours", "yourself", "yourselves"}
 
 
+
 if __name__ == '__main__':
     #####
     # Aljon
@@ -128,7 +129,7 @@ if __name__ == '__main__':
         "master of software engineering"
     ]
 
-    #query = input("Enter a search query:")
+    # query = input("Enter a search query:")
 
     for query in listReport2:
         iCount = 1
@@ -137,7 +138,7 @@ if __name__ == '__main__':
 
         # PRINT top 5 urls for a query
         for fileUrl in sorted(results):
-            if(iCount > 5):
+            if (iCount > 5):
                 break
             print(fileUrl)
             iCount += 1
