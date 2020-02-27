@@ -122,11 +122,25 @@ if __name__ == '__main__':
     # ???
     # subdir = f'C:\\Users\\aghar\\Documents\\121_web\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
 
-    query = input("Enter a search query:")
-    # machine learning
+    listReport2 = [
+        "cristina lopes",
+        "machine learning",
+        "ACM",
+        "master of software engineering"
+    ]
 
-    results = simpleBoolAnd(query, folderPath)
-    print("\n------------ Full Doc List ------------\n")
-    for fileUrl in sorted(results):
-        print(fileUrl)
+    # query = input("Enter a search query:")
+
+    for query in listReport2:
+        iCount = 1
+        results = simpleBoolAnd(query, folderPath)
+        print("\n------------ Full Doc List ------------\n")
+
+        # PRINT top 5 urls for a query
+        for fileUrl in sorted(results):
+            if (iCount > 5):
+                break
+            print(fileUrl)
+            iCount += 1
+
     print("\n------------ DONE! ------------\n")
