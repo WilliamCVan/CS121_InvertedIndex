@@ -5,10 +5,11 @@ import re
 import json
 from bs4 import BeautifulSoup, Comment
 import string
+
 import nltk
 nltk.download('punkt')
 from nltk.stem import PorterStemmer
-from nltk.tokenize import word_tokenize
+import utils as util
 
 # Data Structures
 class Posting:
@@ -21,7 +22,6 @@ class Posting:
 
     def show(self):
         return [self.docID, self.freqCount]
-
 
 
 # Main Functions (aka functions called in __main__)
@@ -133,7 +133,7 @@ def getAllFilePaths(directoryPath: str) -> list:
     return filePathsList
 
 
-def tokenize(fileItem: list) -> dict:
+def tokenize(fileItem: list) -> None:
     filePath = fileItem[1]
     docID = int(fileItem[0])
 
@@ -159,7 +159,20 @@ def tokenize(fileItem: list) -> dict:
         # add all tokens found from html response with tags removed
         varTemp = soup.get_text()
 
+
+
+        ##### CHANGE [REDIS_INSTALLED = True] in utils.py if you have redis installed #####
+        if util.REDIS_INSTALLED:
+            if util.isHashSame(varTemp):
+                return #return if html text has identical hash
+
+            # add unique url to redis
+            urlContent = jsonOBJ["url"]
+            util.addUniqueURL(urlContent)
+
+
         listTemp = re.split(r"[^a-z0-9']+", varTemp.lower())
+
         ps = PorterStemmer()
 
         for word in listTemp:
@@ -187,7 +200,6 @@ def tokenize(fileItem: list) -> dict:
         buildIndex(tokenDict)
         # merge later
         # change the code here to save Postings (tdif, frequency count, linkedList of DocID's, etc)
-        return tokenDict
 
 
 def buildIndex(tokenDict):
