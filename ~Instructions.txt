@@ -1,0 +1,28 @@
+1. Run memoryIndex.memoryParseIndex() to create mini_index.txt
+    -mini_index.txt is saved as a json string representing a dictionary of dictionaries
+    {
+        "ask" : { "freq": 15, "listDocIDs": [2, 15, 20] },
+        "machine" : { "freq": 10, "listDocIDs": [28, 100] },
+        "class" : { "freq": 100, "listDocIDs": [16, 25, 28, 100, 1025] }
+    }
+    On my laptop: takes about 1 minutes to do 1 million tokens, so ~15 minutes to process and save to disk
+    *** json.loads() to convert json string back to python dictionary (example in memorySearch.py)
+
+TODO: Milestone #2
+2. compute td-idf of all tokens, iterate all keys within mini_index.txt dictionary to find calculation
+per token. ADD ["tdidf"] as a NEW key to mini_index.txt. So final example structure is:
+{
+    "ask" : { "freq": 15, "tdidf": 0.578, "listDocIDs": [2, 15, 20] },
+    "machine" : { "freq": "tdidf": 0.088, 10, "listDocIDs": [28, 100] },
+    "class" : { "freq": 100, "tdidf": 0.326, "listDocIDs": [16, 25, 28, 100, 1025] }
+}
+
+3. Get all the URLs from the 55,393 documents within the original corpus, same structure as hashtable.txt,
+    save as urlhash.txt
+    - {
+        0: "ics.uci.edu/a/path",
+        1: "stats.ici.uci.edu"
+      }
+4. Modify memorySearch to get match the urls from urlhash.txt and return top 5 urls
+  -Almost identical to search.py, except we are using in-memory dictionary to do search,
+  RE-USE almost the ENTIRETY of my existing code from search.py
