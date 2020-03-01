@@ -26,3 +26,27 @@ per token. ADD ["tdidf"] as a NEW key to mini_index.txt. So final example struct
 4. Modify memorySearch to get match the urls from urlhash.txt and return top 5 urls
   -Almost identical to search.py, except we are using in-memory dictionary to do search,
   RE-USE almost the ENTIRETY of my existing code from search.py
+
+
+TODO: Milestone #2
+1. compute td-idf of all tokens, iterate all token.json files on disk to find calculation
+per token. ADD ["tdidf"] as a NEW key to each json file. So final example structure is:
+ask.json
+{ "freq": 15, "tdidf": 0.578, "listDocIDs": [2, 15, 20] }  (numbers are examples, not real)
+
+
+2. "Your indexer must offload the inverted
+index hash map from main memory to a partial index on disk at least 3 times
+during index construction; those partial indexes should be merged in the end.
+Optionally, after or during merging, they can also be split into separate index
+files with term ranges. Similarly, your search component must not load the
+entire inverted index in main memory. Instead, it must read the postings from
+the index(es) files on disk. The TAs will verify that this is happening."
+
+2a. Need to fake function that saves/writes tokens to 5 different files, instead of our current one which just writes to single file index.txt
+2b. Need fake function that takes the 5 different file paths above, and merges them. Think you can just append one file into another one according to prompt, use seek() to go to end of file so you don't read the ENTIRE files into memory. 
+
+
+(DONE, inside redisBranch)
+  3. Get all the URLs from the 55,393 documents within the original corpus, same structure as hashtable.txt,
+    save as urlhash.txt
