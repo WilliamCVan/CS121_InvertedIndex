@@ -102,7 +102,7 @@ def reduceResult(listOfSets, folderPath):
 
 # Calculate TF-IDF scores for each token in query, use for ranking documents
 def calculateTFIDF(queryList, unrankedDocList, folderPath):
-    indexFile = open(os.path.join("partial_indexes", "index.txt"), 'r')
+    indexFile = open(os.path.join(folderPath, "index.txt"), 'r')
     hashtableFile = open(os.path.join(folderPath, "hashtable.txt"), 'r')
     hashtable = json.load(hashtableFile)
     #N = 13518180 # N = len(indexTxt.readlines()) 
@@ -153,10 +153,11 @@ def calculateTFIDF(queryList, unrankedDocList, folderPath):
 if __name__ == '__main__':
     #####
     # Aljon
-    folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\CS121_InvertedIndex\\partial_indexes"
+    # folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\CS121_InvertedIndex\\partial_indexes"
 
     # William
-    #folderPath = "C:\\1_Repos\\developer\\partial_indexes"
+    # folderPath = "C:\\1_Repos\\developer\\partial_indexes"
+    folderPath = "C:\\Anaconda3\\envs\\Projects\\developer\\partial_indexes"
 
     # Jerome
     #folderPath = "C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\DEV"
