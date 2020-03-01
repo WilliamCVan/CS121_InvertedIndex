@@ -175,6 +175,7 @@ def tokenize(fileItem: list) -> dict:
                 continue
             try:
                 word = str(int(word))  # get rid of numbers starting with 0 / Aljon -> "why?"
+                                       # go ahead and remove if yall want. I didnt see the point of having both 01 and 1.
             except ValueError:
                 pass
 
@@ -187,24 +188,83 @@ def tokenize(fileItem: list) -> dict:
 
         # write partial indexes to text files ("store on disk")
         buildIndex(tokenDict)
+        #buildMultipleIndexes(tokenDict)
         # merge later
         # change the code here to save Postings (tdif, frequency count, linkedList of DocID's, etc)
         return tokenDict
 
 
 def buildIndex(tokenDict):
-    # write text files to store inndexing data for merging later
+    # write text files to store indexing data for merging later
     with open(os.path.join("partial_indexes", "index.txt"), "a") as partialIndex:
         for key in sorted(tokenDict):
             partialIndex.write(key + " : " + str(tokenDict.get(key).show()) + '\n')
 
+def buildMultipleIndexes(tokenDict):
+    # write separate text files to store data for merging later.
+    cutOff = len(tokenDict)//5 #divide token dict into 5 parts
+    sortedTokens = sorted(tokenDict)
 
+    partialIndex = open(os.path.join("partial_indexes", f"index1.txt"), "a")
+    for val in sortedTokens[:cutOff]:
+        partialIndex.write(val + " : " + str(tokenDict.get(val).show()) + '\n')
+    partialIndex.close()
+
+    partialIndex = open(os.path.join("partial_indexes", f"index2.txt"), "a")
+    for val in sortedTokens[cutOff:cutOff*2]:
+        partialIndex.write(val + " : " + str(tokenDict.get(val).show()) + '\n')
+    partialIndex.close()
+
+    partialIndex = open(os.path.join("partial_indexes", f"index3.txt"), "a")
+    for val in sortedTokens[cutOff*2:cutOff*3]:
+        partialIndex.write(val + " : " + str(tokenDict.get(val).show()) + '\n')
+    partialIndex.close()
+
+    partialIndex = open(os.path.join("partial_indexes", f"index4.txt"), "a")
+    for val in sortedTokens[cutOff*4:cutOff*5]:
+        partialIndex.write(val + " : " + str(tokenDict.get(val).show()) + '\n')
+    partialIndex.close()
+
+    partialIndex = open(os.path.join("partial_indexes", f"index5.txt"), "a")
+    for val in sortedTokens[cutOff*5:]:
+        partialIndex.write(val + " : " + str(tokenDict.get(val).show()) + '\n')
+    partialIndex.close()
+
+def mergeIndexes():
+    partialIndex = open(os.path.join("partial_indexes", f"index.txt"), "a")
+
+    partialIndex1 = open(os.path.join("partial_indexes", f"index1.txt"), "a")
+    for line in partialIndex1:
+        partialIndex.write(line)
+    partialIndex1.close()
+
+    partialIndex2 = open(os.path.join("partial_indexes", f"index2.txt"), "a")
+    for line in partialIndex2:
+        partialIndex.write(line)
+    partialIndex2.close()
+
+    partialIndex3 = open(os.path.join("partial_indexes", f"index3.txt"), "a")
+    for line in partialIndex3:
+        partialIndex.write(line)
+    partialIndex3.close()
+
+    partialIndex4 = open(os.path.join("partial_indexes", f"index4.txt"), "a")
+    for line in partialIndex4:
+        partialIndex.write(line)
+    partialIndex4.close()
+
+    partialIndex5 = open(os.path.join("partial_indexes", f"index5.txt"), "a")
+    for line in partialIndex5:
+        partialIndex.write(line)
+    partialIndex5.close()
+
+    partialIndex.close()
 
 if __name__ == '__main__':
     # Aljon - Big laptop
     #folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
     # Aljon - Small laptop
-    folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
+    #folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
 
     # William
     #folderPath = "C:\\Anaconda3\\envs\\Projects\\DEV"
@@ -221,8 +281,10 @@ if __name__ == '__main__':
     #createPartialIndexes()
     #print("Parsing JSON files, creating index.txt...")
     #parseJSONFiles(folderPath)
+    #print("Merge partial indexes")
+    #mergeIndexes()
     #print("Merging tokens, organizing files into partial index folders")
     #mergeTokens()
-    print("Calculating TF-IDF scores for each token...")
-    calculateTFIDF()
+    #print("Calculating TF-IDF scores for each token...")
+    #calculateTFIDF()
     print("-----DONE!-----")
