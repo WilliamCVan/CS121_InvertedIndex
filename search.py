@@ -7,8 +7,6 @@ from bs4 import BeautifulSoup, Comment
 import string
 
 
-#DOC_COUNT = 55393
-
 # returns unique set of file urls from hasthtable.txt
 def reduceResult(listOfSets, folderPath):
     listUrls = list()  # holds unique file paths of .json files
@@ -33,6 +31,7 @@ def reduceResult(listOfSets, folderPath):
         listUrls.append(fileUrl)
 
     return listUrls
+
 
 # Takes in query as str. Returns list of docs that match the AND query
 def simpleBoolAnd(query, folderPath):
@@ -93,7 +92,6 @@ stopWords = {"a", "about", "above", "after", "again", "against", "all", "am", "a
              "what", "what's", "when", "when's", "where", "where's", "which", "while", "who", "who's", "whom",
              "why", "why's", "with", "won't", "would", "wouldn't",
              "you", "you'd", "you'll", "you're", "you've", "your", "yours", "yourself", "yourselves"}
-
 
 
 if __name__ == '__main__':

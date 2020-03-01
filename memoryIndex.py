@@ -4,7 +4,7 @@ nltk.download('punkt')
 from nltk.stem import PorterStemmer
 
 def memoryParseIndex():
-    indexpath = "C:\\1_Repos\\developer\\partial_indexes\\index.txt"
+    indexpath = "C:\\Users\\aljon\\Documents\\CS121_InvertedIndex\\partial_indexes\\index.txt"
     dictMAIN = dict()
 
     with open(indexpath, 'r') as r:
