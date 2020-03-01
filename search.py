@@ -102,45 +102,48 @@ def reduceResult(listOfSets, folderPath):
 
 # Calculate TF-IDF scores for each token in query, use for ranking documents
 def calculateTFIDF(queryList, unrankedDocList, folderPath):
-    indexTxt = open(os.path.join("partial_indexes", "index.txt"), 'r')
+    indexFile = open(os.path.join("partial_indexes", "index.txt"), 'r')
+    hashtableFile = open(os.path.join(folderPath, "hashtable.txt"), 'r')
+    hashtable = json.load(hashtableFile)
     #N = 13518180 # N = len(indexTxt.readlines()) 
     
     # Create dict of {key=docURL : value=TF-IDF score}
-    tfidfDict = dict()
+    tfidfDict = dict.fromkeys(unrankedDocList, 0)
     for token in queryList:
         with open(os.path.join(folderPath, queryList[0][0], f"{queryList[0]}.json"), 'r') as jsonFile:
             tokenInfo = json.load(jsonFile)
             # Get TF (Overall Token Frequency) from token's json file in index
             TF = tokenInfo["freq"]
-            print("TF = ", TF)
+            #print("TF = ", TF)
             # Get N (Number of docs the token is in) from token's json file in index
             N = len(tokenInfo["listDocIDs"])
-            print("N = ", N)
+            #print("N = ", N)
 
-        for docURL in unrankedDocList:
-            print("Current Doc = ", docURL)
+        #Create a "temporary" dict of {key=docURL : value=frequency of token in this doc}
+        docFreqDict = dict.fromkeys(unrankedDocList, 0)
+        # Return to top of file, if not already there
+        indexFile.seek(0)
+        for line in indexFile.readlines():
             # Get the frequency of this token for this specific document
-            # Have to go line-by-line in index.txt to find them...
-            freqInDoc = 0
-            for line in indexTxt.readlines():
-                line = str(line)
-                if line.startswith(token):
-                    # Parses Posting from index.txt -> [0] = DocID, [1] = freq for this doc
-                    indexItems = re.findall(r"\[.*\]", line)[0].strip("][").split(', ')
-                    with open(os.path.join(folderPath, "hashtable.txt")) as hashtableFile:
-                        hashtable = json.load(hashtableFile)
-                        print(hashtable[indexItems[0]])
-                        print(docURL)
-                        if hashtable[indexItems[0]] == docURL:
-                            freqInDoc += int(indexItems[1])
-                    
-            print(f"freqInDoc for {token} = ", freqInDoc)
+            # Have to go line-by-line in index.txt to find them, but only once per token
+            line = str(line)
+            if line.startswith(token):
+                # Parses Posting from index.txt -> [0] = DocID, [1] = freq for this doc
+                indexItems = re.findall(r"\[.*\]", line)[0].strip("][").split(', ')
+                currentDocURL = hashtable[indexItems[0]]
+                # If current DocID is in our dictionary, add to its freq total
+                if currentDocURL in docFreqDict:
+                    docFreqDict[currentDocURL] += int(indexItems[1])
+        
+        #for key, value in docFreqDict.items():   
+        #    print(f"freqInDoc '{key}' for {token} = {value}")
 
-            # Calculate TF-IDF score for this document
-            if freqInDoc == 0:
-                tfidfDict[docURL] = 0
+        # Calculate TF-IDF score for this document
+        for key in tfidfDict:
+            if docFreqDict[key] == 0:
+                tfidfDict[key] = 0
             else:
-                tfidfDict[docURL] = TF * math.log(N / freqInDoc)
+                tfidfDict[key] = TF * math.log(N / docFreqDict[key])
     
     # Note: tfidfDict considers the entire query (Works similar to BoolAnd search)
     return tfidfDict
@@ -175,17 +178,15 @@ if __name__ == '__main__':
     #query = input("Enter a search query:")
     for i, query in enumerate(listReport2):
         iCount = 1
-
         # Sorts results by TF-IDF score before printing
-        print(sorted(simpleBoolAnd(query, folderPath).items(), key=lambda x: x[1]))
-        results = sorted(simpleBoolAnd(query, folderPath).items(), key=lambda x: x[1])
+        results = sorted(simpleBoolAnd(query, folderPath).items(), key=lambda x: x[1], reverse=True)
         print(f"\n------------ Top 5 Docs for '{listReport2[i]}' ------------\n")
-
         # Print top 5 ranked file-urls for given query
-        for fileUrl in sorted(results):
+        for fileUrl in results:
             if (iCount > 5):
                 break
             print(fileUrl)
             iCount += 1
+        print(f"\n------------------------------------------------------------\n")
 
     print("\n------------ DONE! ------------\n")
