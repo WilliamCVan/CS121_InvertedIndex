@@ -5,33 +5,34 @@ import re
 import json
 from bs4 import BeautifulSoup, Comment
 import string
+import math
 
 
-# returns unique set of file urls from hasthtable.txt
-def reduceResult(listOfSets, folderPath):
-    listUrls = list()  # holds unique file paths of .json files
+stopWords = {"a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't",
+             "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by",
+             "can't",
+             "cannot", "could", "couldn't", "did", "didn't", "do", "does", "doesn't", "doing", "don't", "down",
+             "during",
+             "each", "few", "for", "from", "further", "had", "hadn't", "has", "hasn't", "have", "haven't", "having",
+             "he", "he'd",
+             "he'll", "he's", "her", "here", "here's", "hers", "herself", "him", "himself", "his", "how", "how's",
+             "i", "i'd", "i'll",
+             "i'm", "i've", "if", "in", "into", "is", "isn't", "it", "it's", "its", "itself", "let's", "me", "more",
+             "most", "mustn't", "my",
+             "myself", "no", "nor", "not", "of", "off", "on", "once", "only", "or", "other", "ought", "our", "ours",
+             "ourselves", "out", "over",
+             "own", "same", "shan't", "she", "she'd", "she'll", "she's", "should", "shouldn't", "so", "some",
+             "such", "than", "that", "that's",
+             "the", "their", "theirs", "them", "themselves", "then", "there", "there's", "these", "they", "they'd",
+             "they'll", "they're", "they've",
+             "this", "those", "through", "to", "too", "under", "until", "up", "very", "was", "wasn't", "we", "we'd",
+             "we'll", "we're", "we've", "were", "weren't",
+             "what", "what's", "when", "when's", "where", "where's", "which", "while", "who", "who's", "whom",
+             "why", "why's", "with", "won't", "would", "wouldn't",
+             "you", "you'd", "you'll", "you're", "you've", "your", "yours", "yourself", "yourselves"}
 
-    hashSet = None
-    hashTablePath = Path(folderPath) / "hashtable.txt"
-    with open(hashTablePath, "r") as file:
-        data = file.read()
-        hashSet = json.loads(data)
 
-    tempSet = None
-    for setObjs in listOfSets:
-        #we initialize our tempset if first iteration of loop to first set in list
-        if tempSet == None:
-            tempSet = setObjs
-            continue
-
-        tempSet = tempSet.intersection(setObjs)
-
-    for docID in tempSet:
-        fileUrl = hashSet[docID]
-        listUrls.append(fileUrl)
-
-    return listUrls
-
+# Main Functions (aka functions called in __main__)
 
 # Takes in query as str. Returns list of docs that match the AND query
 def simpleBoolAnd(query, folderPath):
@@ -67,45 +68,92 @@ def simpleBoolAnd(query, folderPath):
         except:
             pass
 
-    return reduceResult(listOfSets, folderPath)
+    unrankedDocList = reduceResult(listOfSets, folderPath)
+    return calculateTFIDF(queryList, unrankedDocList, folderPath)
 
-#Cleans up query by removing stopwords. Also changes query from str to list<str>
-stopWords = {"a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't",
-             "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by",
-             "can't",
-             "cannot", "could", "couldn't", "did", "didn't", "do", "does", "doesn't", "doing", "don't", "down",
-             "during",
-             "each", "few", "for", "from", "further", "had", "hadn't", "has", "hasn't", "have", "haven't", "having",
-             "he", "he'd",
-             "he'll", "he's", "her", "here", "here's", "hers", "herself", "him", "himself", "his", "how", "how's",
-             "i", "i'd", "i'll",
-             "i'm", "i've", "if", "in", "into", "is", "isn't", "it", "it's", "its", "itself", "let's", "me", "more",
-             "most", "mustn't", "my",
-             "myself", "no", "nor", "not", "of", "off", "on", "once", "only", "or", "other", "ought", "our", "ours",
-             "ourselves", "out", "over",
-             "own", "same", "shan't", "she", "she'd", "she'll", "she's", "should", "shouldn't", "so", "some",
-             "such", "than", "that", "that's",
-             "the", "their", "theirs", "them", "themselves", "then", "there", "there's", "these", "they", "they'd",
-             "they'll", "they're", "they've",
-             "this", "those", "through", "to", "too", "under", "until", "up", "very", "was", "wasn't", "we", "we'd",
-             "we'll", "we're", "we've", "were", "weren't",
-             "what", "what's", "when", "when's", "where", "where's", "which", "while", "who", "who's", "whom",
-             "why", "why's", "with", "won't", "would", "wouldn't",
-             "you", "you'd", "you'll", "you're", "you've", "your", "yours", "yourself", "yourselves"}
+
+# Helper Functions (aka functions called by other functions)
+
+# Returns unique set of file urls from hasthtable.txt
+def reduceResult(listOfSets, folderPath):
+    listUrls = list()  # holds unique file paths of .json files
+
+    hashSet = None
+    hashTablePath = Path(folderPath) / "hashtable.txt"
+    with open(hashTablePath, "r") as file:
+        data = file.read()
+        hashSet = json.loads(data)
+
+    tempSet = None
+    for setObjs in listOfSets:
+        #we initialize our tempset if first iteration of loop to first set in list
+        if tempSet == None:
+            tempSet = setObjs
+            continue
+
+        tempSet = tempSet.intersection(setObjs)
+
+    for docID in tempSet:
+        fileUrl = hashSet[docID]
+        listUrls.append(fileUrl)
+
+    return listUrls
+
+
+# Calculate TF-IDF scores for each token in query, use for ranking documents
+def calculateTFIDF(queryList, unrankedDocList, folderPath):
+    indexTxt = open(os.path.join("partial_indexes", "index.txt"), 'r')
+    #N = 13518180 # N = len(indexTxt.readlines()) 
+    
+    # Create dict of {key=docURL : value=TF-IDF score}
+    tfidfDict = dict()
+    for token in queryList:
+        with open(os.path.join(folderPath, queryList[0][0], f"{queryList[0]}.json"), 'r') as jsonFile:
+            tokenInfo = json.load(jsonFile)
+            # Get TF (Overall Token Frequency) from token's json file in index
+            TF = tokenInfo["freq"]
+            print("TF = ", TF)
+            # Get N (Number of docs the token is in) from token's json file in index
+            N = len(tokenInfo["listDocIDs"])
+            print("N = ", N)
+
+        for docURL in unrankedDocList:
+            print("Current Doc = ", docURL)
+            # Get the frequency of this token for this specific document
+            # Have to go line-by-line in index.txt to find them...
+            freqInDoc = 0
+            for line in indexTxt.readlines():
+                line = str(line)
+                if line.startswith(token):
+                    # Parses Posting from index.txt -> [0] = DocID, [1] = freq for this doc
+                    indexItems = re.findall(r"\[.*\]", line)[0].strip("][").split(', ')
+                    with open(os.path.join(folderPath, "hashtable.txt")) as hashtableFile:
+                        hashtable = json.load(hashtableFile)
+                        print(hashtable[indexItems[0]])
+                        print(docURL)
+                        if hashtable[indexItems[0]] == docURL:
+                            freqInDoc += int(indexItems[1])
+                    
+            print(f"freqInDoc for {token} = ", freqInDoc)
+
+            # Calculate TF-IDF score for this document
+            if freqInDoc == 0:
+                tfidfDict[docURL] = 0
+            else:
+                tfidfDict[docURL] = TF * math.log(N / freqInDoc)
+    
+    # Note: tfidfDict considers the entire query (Works similar to BoolAnd search)
+    return tfidfDict
+
 
 
 if __name__ == '__main__':
     #####
     # Aljon
-    #folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
-    #foldePath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
-    # Aljon
-    # subdir = f'C:\\Users\\aljon\\Documents\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
-    # subdir = f'C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
-    #####
+    folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\CS121_InvertedIndex\\partial_indexes"
 
     # William
-    folderPath = "C:\\1_Repos\\developer\\partial_indexes"
+    #folderPath = "C:\\1_Repos\\developer\\partial_indexes"
 
     # Jerome
     #folderPath = "C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\DEV"
@@ -116,9 +164,6 @@ if __name__ == '__main__':
     # linux
     #folderPath = "/home/anon/Downloads/DEV"
     #####
-    #####
-    # ???
-    # subdir = f'C:\\Users\\aghar\\Documents\\121_web\\CS121_InvertedIndex\\partial_indexes\\{charPath}'
 
     listReport2 = [
         "cristina lopes",
@@ -127,14 +172,16 @@ if __name__ == '__main__':
         "master of software engineering"
     ]
 
-    # query = input("Enter a search query:")
-
-    for query in listReport2:
+    #query = input("Enter a search query:")
+    for i, query in enumerate(listReport2):
         iCount = 1
-        results = simpleBoolAnd(query, folderPath)
-        print("\n------------ Full Doc List ------------\n")
 
-        # PRINT top 5 urls for a query
+        # Sorts results by TF-IDF score before printing
+        print(sorted(simpleBoolAnd(query, folderPath).items(), key=lambda x: x[1]))
+        results = sorted(simpleBoolAnd(query, folderPath).items(), key=lambda x: x[1])
+        print(f"\n------------ Top 5 Docs for '{listReport2[i]}' ------------\n")
+
+        # Print top 5 ranked file-urls for given query
         for fileUrl in sorted(results):
             if (iCount > 5):
                 break

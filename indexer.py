@@ -107,23 +107,6 @@ def mergeTokens():
             continue
 
 
-#Calculate TF-IDF scores for each token, and add those scores to each "token".json file in our index
-def calculateTFIDF():
-    indexTxt = open(os.path.join("partial_indexes", "index.txt"), 'r')
-
-    N = sum(1 for line in indexTxt)
-    
-    idfDict = dict.fromkeys(documents[0].keys(), 0)
-    for document in documents:
-        for word, val in document.items():
-            if val > 0:
-                idfDict[word] += 1
-    
-    for word, val in idfDict.items():
-        idfDict[word] = math.log(N / float(val))
-    return idfDict
-
-
 
 ### Helper Functions (aka functions called by other functions) ###
 
@@ -216,11 +199,6 @@ def buildIndex(tokenDict):
             partialIndex.write(key + " : " + str(tokenDict.get(key).show()) + '\n')
 
 
-# Calculates IF-IDF scores, somehow...
-def calculateScores(index, hash):
-    pass
-
-
 
 if __name__ == '__main__':
     # Aljon - Big laptop
@@ -246,5 +224,5 @@ if __name__ == '__main__':
     #print("Merging tokens, organizing files into partial index folders")
     #mergeTokens()
     print("Calculating TF-IDF scores for each token...")
-    
+    calculateTFIDF()
     print("-----DONE!-----")
