@@ -105,7 +105,7 @@ def calculateTFIDF(queryList, unrankedDocList, folderPath):
     indexFile = open(os.path.join(folderPath, "index.txt"), 'r')
     hashtableFile = open(os.path.join(folderPath, "hashtable.txt"), 'r')
     hashtable = json.load(hashtableFile)
-    #N = 13518180 # N = len(indexTxt.readlines()) 
+    N = 13518180 # N = len(indexTxt.readlines()) 
     
     # Create dict of {key=docURL : value=TF-IDF score}
     tfidfDict = dict.fromkeys(unrankedDocList, 0)
@@ -113,11 +113,9 @@ def calculateTFIDF(queryList, unrankedDocList, folderPath):
         with open(os.path.join(folderPath, queryList[0][0], f"{queryList[0]}.json"), 'r') as jsonFile:
             tokenInfo = json.load(jsonFile)
             # Get TF (Overall Token Frequency) from token's json file in index
-            TF = tokenInfo["freq"]
-            #print("TF = ", TF)
-            # Get N (Number of docs the token is in) from token's json file in index
-            N = len(tokenInfo["listDocIDs"])
-            #print("N = ", N)
+            RawTF = tokenInfo["freq"]
+            # Get N (Number of docs the token is in) from token's json file in index (not right??)
+            #N = len(tokenInfo["listDocIDs"])
 
         #Create a "temporary" dict of {key=docURL : value=frequency of token in this doc}
         docFreqDict = dict.fromkeys(unrankedDocList, 0)
@@ -143,7 +141,7 @@ def calculateTFIDF(queryList, unrankedDocList, folderPath):
             if docFreqDict[key] == 0:
                 tfidfDict[key] = 0
             else:
-                tfidfDict[key] = TF * math.log(N / docFreqDict[key])
+                tfidfDict[key] = (1 + math.log(RawTF)) * math.log(N / docFreqDict[key])
     
     # Note: tfidfDict considers the entire query (Works similar to BoolAnd search)
     return tfidfDict
@@ -153,11 +151,11 @@ def calculateTFIDF(queryList, unrankedDocList, folderPath):
 if __name__ == '__main__':
     #####
     # Aljon
-    # folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\CS121_InvertedIndex\\partial_indexes"
+    folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\CS121_InvertedIndex\\partial_indexes"
 
     # William
     # folderPath = "C:\\1_Repos\\developer\\partial_indexes"
-    folderPath = "C:\\Anaconda3\\envs\\Projects\\developer\\partial_indexes"
+    #folderPath = "C:\\Anaconda3\\envs\\Projects\\developer\\partial_indexes"
 
     # Jerome
     #folderPath = "C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\DEV"
