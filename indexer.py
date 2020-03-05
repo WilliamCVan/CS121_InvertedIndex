@@ -13,15 +13,19 @@ import math
 
 
 # Data Structures
+# 'Posting' objects store the info we later put into each token.json file in our index
+# Initially, each token we find in each document goes into index.txt
 class Posting:
-    def __init__(self, docID, freqCount):
-        self.docID = docID
-        self.freqCount = freqCount
+    def __init__(self, docID, freqCount, tfidfScore, headerType):
+        self.docID = int(docID)
+        self.freqCount = int(freqCount)
+        self.tfidfScore = int(tfidfScore)
+        self.headerType = str(headerType)  # Get tag from content, place in here
 
     def incFreq(self):
         self.freqCount += 1
 
-    def show(self):
+    def showData(self):
         return [self.docID, self.freqCount]
 
 
@@ -107,6 +111,53 @@ def mergeTokens():
             continue
 
 
+# Calculate TF-IDF scores for each token in query, use for ranking documents
+def calculateTFIDF(queryList, unrankedDocList, folderPath):
+    indexFile = open(os.path.join(folderPath, "index.txt"), 'r')
+    hashtableFile = open(os.path.join(folderPath, "hashtable.txt"), 'r')
+    hashtable = json.load(hashtableFile)
+    N = 13518180 # N = len(indexTxt.readlines()) 
+    
+    # Create dict of {key=docURL : value=TF-IDF score}
+    tfidfDict = dict.fromkeys(unrankedDocList, 0)
+    for token in queryList:
+        with open(os.path.join(folderPath, queryList[0][0], f"{queryList[0]}.json"), 'r') as jsonFile:
+            tokenInfo = json.load(jsonFile)
+            # Get TF (Overall Token Frequency) from token's json file in index
+            RawTF = tokenInfo["freq"]
+            # Get N (Number of docs the token is in) from token's json file in index (not right??)
+            #N = len(tokenInfo["listDocIDs"])
+
+        #Create a "temporary" dict of {key=docURL : value=frequency of token in this doc}
+        docFreqDict = dict.fromkeys(unrankedDocList, 0)
+        # Return to top of file, if not already there
+        indexFile.seek(0)
+        for line in indexFile.readlines():
+            # Get the frequency of this token for this specific document
+            # Have to go line-by-line in index.txt to find them, but only once per token
+            line = str(line)
+            if line.startswith(token):
+                # Parses Posting from index.txt -> [0] = DocID, [1] = freq for this doc
+                indexItems = re.findall(r"\[.*\]", line)[0].strip("][").split(', ')
+                currentDocURL = hashtable[indexItems[0]]
+                # If current DocID is in our dictionary, add to its freq total
+                if currentDocURL in docFreqDict:
+                    docFreqDict[currentDocURL] += int(indexItems[1])
+        
+        #for key, value in docFreqDict.items():   
+        #    print(f"freqInDoc '{key}' for {token} = {value}")
+
+        # Calculate TF-IDF score for this document
+        for key in tfidfDict:
+            if docFreqDict[key] == 0:
+                tfidfDict[key] = 0
+            else:
+                tfidfDict[key] = (1 + math.log(RawTF)) * math.log(N / docFreqDict[key])
+    
+    # Note: tfidfDict considers the entire query (Works similar to BoolAnd search)
+    return tfidfDict
+
+
 
 ### Helper Functions (aka functions called by other functions) ###
 
@@ -136,18 +187,17 @@ def getAllFilePaths(directoryPath: str) -> list:
 
 
 def tokenize(fileItem: list) -> dict:
+    ps = PorterStemmer()
+    tokenDict = dict()
     filePath = fileItem[1]
     docID = int(fileItem[0])
 
     with open(filePath, 'r') as content_file:
         textContent = content_file.read()
-
         jsonOBJ = json.loads(textContent)
         htmlContent = jsonOBJ["content"]
 
-        tokenDict = dict()
-
-        # initialize object and pass in html
+        # initialize BeautifulSoup object and pass in html content
         soup = BeautifulSoup(htmlContent, 'html.parser')
 
         # removes comments from text
@@ -158,11 +208,9 @@ def tokenize(fileItem: list) -> dict:
         for element in soup.findAll(['script', 'style']):
             element.extract()
 
-        # add all tokens found from html response with tags removed
+        # add all tokens found from html response WITH TAGS INTACT
         varTemp = soup.get_text()
-
         listTemp = re.split(r"[^a-z0-9']+", varTemp.lower())
-        ps = PorterStemmer()
 
         for word in listTemp:
             if (len(word) == 0):  # ignore empty strings
@@ -173,36 +221,30 @@ def tokenize(fileItem: list) -> dict:
                 continue
             if (len(word) == 1 and word.isalpha()): # ignore single characters
                 continue
-            try:
-                word = str(int(word))  # get rid of numbers starting with 0 / Aljon -> "why?"
-                                       # go ahead and remove if yall want. I didnt see the point of having both 01 and 1.
-            except ValueError:
-                pass
 
-            word = ps.stem(word)    # run Porter stemmer on token
-
+            word = ps.stem(word)  # run Porter stemmer on token
             if word in tokenDict:
                 tokenDict.get(word).incFreq()
             else:
-                tokenDict[word] = Posting(docID, 1)
+                tokenDict[word] = Posting(docID, 1, )
 
-        # write partial indexes to text files ("store on disk")
-        buildIndex(tokenDict)
-        #buildMultipleIndexes(tokenDict)
-        # merge later
+        # Write partial indexes to text files ("store on disk")
+        #buildIndex(tokenDict)
+        buildMultipleIndexes(tokenDict)
         # change the code here to save Postings (tdif, frequency count, linkedList of DocID's, etc)
         return tokenDict
 
 
-def buildIndex(tokenDict):
+def buildIndex(tokenDict : dict) -> None:
     # write text files to store indexing data for merging later
     with open(os.path.join("partial_indexes", "index.txt"), "a") as partialIndex:
         for key in sorted(tokenDict):
             partialIndex.write(key + " : " + str(tokenDict.get(key).show()) + '\n')
 
-def buildMultipleIndexes(tokenDict):
-    # write separate text files to store data for merging later.
-    cutOff = len(tokenDict)//5 #divide token dict into 5 parts
+
+def buildMultipleIndexes(tokenDict : dict) -> None: 
+    # write separate text files to store data for merging later
+    cutOff = len(tokenDict)//5  # divide token dict into 5 parts
     sortedTokens = sorted(tokenDict)
 
     partialIndex = open(os.path.join("partial_indexes", f"index1.txt"), "a")
@@ -229,6 +271,7 @@ def buildMultipleIndexes(tokenDict):
     for val in sortedTokens[cutOff*5:]:
         partialIndex.write(val + " : " + str(tokenDict.get(val).show()) + '\n')
     partialIndex.close()
+
 
 def mergeIndexes():
     partialIndex = open(os.path.join("partial_indexes", f"index.txt"), "a")
@@ -259,6 +302,8 @@ def mergeIndexes():
     partialIndex5.close()
 
     partialIndex.close()
+
+
 
 if __name__ == '__main__':
     # Aljon - Big laptop

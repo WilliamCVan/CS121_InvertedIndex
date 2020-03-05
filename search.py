@@ -68,8 +68,8 @@ def simpleBoolAnd(query, folderPath):
         except:
             pass
 
-    unrankedDocList = reduceResult(listOfSets, folderPath)
-    return calculateTFIDF(queryList, unrankedDocList, folderPath)
+    return reduceResult(listOfSets, folderPath)
+    #return calculateTFIDF(queryList, unrankedDocList, folderPath)
 
 
 # Helper Functions (aka functions called by other functions)
@@ -100,6 +100,7 @@ def reduceResult(listOfSets, folderPath):
     return listUrls
 
 
+'''
 # Calculate TF-IDF scores for each token in query, use for ranking documents
 def calculateTFIDF(queryList, unrankedDocList, folderPath):
     indexFile = open(os.path.join(folderPath, "index.txt"), 'r')
@@ -145,6 +146,7 @@ def calculateTFIDF(queryList, unrankedDocList, folderPath):
     
     # Note: tfidfDict considers the entire query (Works similar to BoolAnd search)
     return tfidfDict
+'''
 
 
 
