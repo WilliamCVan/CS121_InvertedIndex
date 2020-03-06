@@ -61,6 +61,17 @@ def readDictionaryIntoMemory():
     #     for line in f:
     #         print(line)
 
+
+from pathlib import Path
+def readHashTable(folderPath):
+    hashSet = None
+    hashTablePath = Path(folderPath) / "hashtable.txt"
+    with open(hashTablePath, "r") as file:
+        data = file.read()
+        hashSet = json.loads(data)
+        return hashSet
+
+
 if __name__ == '__main__':
     memoryParseIndex()
     #readDictionaryIntoMemory()
