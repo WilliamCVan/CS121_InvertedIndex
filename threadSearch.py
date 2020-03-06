@@ -150,9 +150,8 @@ def reduceResult():
 
 
 def simpleBoolAnd(word):
-    # for word in tempList:
-    #     if word not in stopWords:
-    #         queryList.add(word)
+    if word in stopWords:
+        return
     #
     # #convert set to list to enumerate
     # queryList = list(queryList)
