@@ -205,7 +205,7 @@ def tokenize(fileItem: list) -> dict:
         # buildMultipleIndexes(tokenDict)
         # merge later
         # change the code here to save Postings (tdif, frequency count, linkedList of DocID's, etc)
-        Sreturn tokenDict
+        return tokenDict
 
 
 def buildIndex(tokenDict):
