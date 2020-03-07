@@ -50,11 +50,6 @@ def createPartialIndexes() -> None:
 # Uses multithreading, tokenizes every document in the "DEV" corpus
 def parseJSONFiles(directoryPath: str) -> int:
     filePathsList = getAllFilePaths(directoryPath)
-    i = 0
-    while i < 100:
-        tokenize(filePathsList[i])
-        i += 1
-    '''
     # https://stackoverflow.com/questions/2846653/how-can-i-use-threading-in-python
     # Make the Pool of workers
     pool = Pool(processes=20)
@@ -63,7 +58,6 @@ def parseJSONFiles(directoryPath: str) -> int:
     # Close the pool and wait for the work to finish
     pool.close()
     pool.join()
-    '''
 
 
 # Reads index.txt line by line, then sums the frequencies of each token.
@@ -201,8 +195,8 @@ def tokenize(fileItem: list) -> dict:
             element.extract()
 
         # Collect all words found from html response WITH TAGS IN A TUPLE WITH EACH WORD ('word', 'tag')
-        tagNamesList = ['title', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p']
-        tagsList = [soup.find_all('title'), soup.find_all('h1'), soup.find_all('h2'), soup.find_all('h3'), 
+        tagNamesList = ['a', 'title', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p']
+        tagsList = [soup.find_all('a'), soup.find_all('title'), soup.find_all('h1'), soup.find_all('h2'), soup.find_all('h3'), 
                     soup.find_all('h4'), soup.find_all('h5'), soup.find_all('h6'), soup.find_all('p')]
         taggedTextDict = dict()
         for i, tagSubList in enumerate(tagsList):
@@ -216,8 +210,8 @@ def tokenize(fileItem: list) -> dict:
             for word in wordList:
                 if (len(word) == 0):  # ignore empty strings
                     continue
-                if (len(word) > 30):  # ignore words like ivborw0kggoaaaansuheugaaabaaaaaqcamaaaaolq9taaaaw1bmveuaaaacagiahb0bhb0bhr0ahb4chh8dhx8eicifisiukt4djzankywplcwhltkfpl8nn0clpvm9qumvvxu8wnvbrezesepkyxvwzxbpbnjqb3jtcxruc3vvdxhzdnhyehtefjvdf5xtjkv
-                    continue
+                if (len(word) > 30 and tag != 'a'):  # ignore words like ivborw0kggoaaaansuheugaaabaaaaaqcamaaaaolq9taaaaw1bmveuaaaacagiahb0bhb0bhr0ahb4chh8dhx8eicifisiukt4djzankywplcwhltkfpl8nn0clpvm9qumvvxu8wnvbrezesepkyxvwzxbpbnjqb3jtcxruc3vvdxhzdnhyehtefjvdf5xtjkv
+                    continue # But accept any URLs that may be large
                 if (word[0] == "'"):  # ignore words that start with '
                     continue
                 if (len(word) == 1 and word.isalpha()): # ignore single characters
