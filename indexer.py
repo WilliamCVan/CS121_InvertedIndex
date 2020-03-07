@@ -6,27 +6,28 @@ import json
 from bs4 import BeautifulSoup, Comment
 import string
 import nltk
-nltk.download('punkt')
+#nltk.download('punkt')
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 import math
 
 
 # Data Structures
+
 # 'Posting' objects store the info we later put into each token.json file in our index
-# Initially, each token we find in each document goes into index.txt
+# Initially, each token and Posting we find in each document goes into index.txt
+# Postings contain docID (where token was found), RAW frequency (in the document of docID), and tag (from HTML content)
 class Posting:
-    def __init__(self, docID, freqCount, tfidfScore, headerType):
+    def __init__(self, docID, frequency, tag):
         self.docID = int(docID)
-        self.freqCount = int(freqCount)
-        self.tfidfScore = int(tfidfScore)
-        self.headerType = str(headerType)  # Get tag from content, place in here
+        self.frequency = int(frequency)
+        self.tag = str(tag)
 
     def incFreq(self):
-        self.freqCount += 1
+        self.frequency += 1
 
     def showData(self):
-        return [self.docID, self.freqCount]
+        return [self.docID, self.frequency, self.tag]
 
 
 
@@ -34,86 +35,81 @@ class Posting:
 
 # Creates subdirectories for each integer and letter.
 def createPartialIndexes() -> None:
-    if not Path("partial_indexes").exists():
-        Path("partial_indexes").mkdir()
-    
+    if not Path("index").exists():
+        Path("index").mkdir()
     for char in list(string.ascii_lowercase):
-        pathFull = Path("partial_indexes") / char
+        pathFull = Path("index") / char
         if not pathFull.exists():
             pathFull.mkdir()
-
     for num in list("0123456789"):
-        pathFull = Path("partial_indexes") / num
+        pathFull = Path("index") / num
         if not pathFull.exists():
             pathFull.mkdir()
 
 
+# Uses multithreading, tokenizes every document in the "DEV" corpus
 def parseJSONFiles(directoryPath: str) -> int:
-    listFilePaths = getAllFilePaths(directoryPath)
-
-    #DOC_NUM = len(listFilePaths)    #number of files we will tokenize
-
+    filePathsList = getAllFilePaths(directoryPath)
+    i = 0
+    while i < 100:
+        tokenize(filePathsList[i])
+        i += 1
+    '''
     # https://stackoverflow.com/questions/2846653/how-can-i-use-threading-in-python
     # Make the Pool of workers
     pool = Pool(processes=20)
     # Each worker get a directory from list above, and begin tokenizing all json files inside
-    pool.map(tokenize, listFilePaths)
-
+    pool.map(tokenize, filePathsList)
     # Close the pool and wait for the work to finish
     pool.close()
     pool.join()
+    '''
 
 
-# Reads index.txt line by line, then merges the frequencies of each token.
-# Finally, it collects a list of DocIDs into a list for each token.
+# Reads index.txt line by line, then sums the frequencies of each token.
+# Next, it collects a list of DocIDs into a list for each token.
+# Finally, it adds the tag the token had originally
 def mergeTokens():
-    indexTxt = open(os.path.join("partial_indexes", "index.txt"), 'r')
+    indexTxt = open(os.path.join("index", "index.txt"), 'r')
 
     for line in indexTxt:
         try:
-            arrPosting = line.split(" : ")
-            wordToken = arrPosting[0].replace("'", "")
-            firstLetter = wordToken[0:1]
+            # Convert raw text in this line into Posting data
+            posting = line.split(" : ")
+            token = posting[0].replace("'", "")
+            postingList = posting[1].replace("[", "").replace("]", "").replace("\n", "").split(", ")
+            
+            # Collect data about the token from this line
+            newDocID = int(postingList[0])
+            newFreq = int(postingList[1])
+            newTag = str(postingList[2].strip("'"))
 
-            templist = arrPosting[1].replace("[", "").replace("]", "").replace("\n", "").split(", ")
-            docID = int(templist[0])
-            frequency = templist[1]
+            # Create a new filename and filepath for this token
+            firstLetter = token[0:1]
+            filePathFull = Path("index") / firstLetter / (token + ".json")
 
-            filePathFull = Path("partial_indexes") / firstLetter / (wordToken + ".json")
-
-            # If file exists, then we read it out as json
+            # If file already exists, then we read it and update it
             if filePathFull.is_file():
                 with open(filePathFull, "r+") as posting:
+                    # Add to the existing data and save updated values back to json
+                    posting.seek(0) # reset to beginning of file to overwrite
                     data = posting.read()
                     jsonObj = json.loads(data)
-                    jsonCount = jsonObj["freq"]
-                    jsonListPostings = jsonObj["listDocIDs"]
-
-                    newFreq = jsonCount + int(frequency)
-                    jsonListPostings.append(docID)
-
-                    # save updated values back to json
-                    posting.seek(0) # reset to beginning of file to overwrite
-                    jsonObj["freq"] = newFreq
-                    jsonObj["listDocIDs"] = sorted(jsonListPostings)
+                    jsonObj["freq"] += newFreq
+                    jsonObj["docIDList"] = sorted(jsonObj["docIDList"].append( [newDocID, newTag] ))
                     posting.write(json.dumps(jsonObj))
-            else:
-                jsonObj = {"freq": 0, "listDocIDs": []}
-                newFreq = jsonObj["freq"] + int(frequency)
-                newListID = [int(docID)]
 
-                # save updated values back to json
-                jsonObj["freq"] = newFreq
-                jsonObj["listDocIDs"] = newListID
+            else:
+                # Otherwise, write it from scratch
+                jsonObj = {"freq": newFreq, "listDocIDs": [ [newDocID, newTag] ]}
                 with open(filePathFull, "w+") as posting:
                     posting.write(json.dumps(jsonObj))
         except:
             continue
 
-    indexTxt.close()
 
-# Calculate TF-IDF scores for each token in query, use for ranking documents
-def calculateTFIDF(queryList, unrankedDocList, folderPath):
+# Calculate TF-IDF scores for a given (token:document) in index.txt and 'DEV' corpus
+def calculateTFIDF(token, unrankedDocList, folderPath):
     indexFile = open(os.path.join(folderPath, "index.txt"), 'r')
     hashtableFile = open(os.path.join(folderPath, "hashtable.txt"), 'r')
     hashtable = json.load(hashtableFile)
@@ -124,7 +120,7 @@ def calculateTFIDF(queryList, unrankedDocList, folderPath):
     for token in queryList:
         with open(os.path.join(folderPath, queryList[0][0], f"{queryList[0]}.json"), 'r') as jsonFile:
             tokenInfo = json.load(jsonFile)
-            # Get TF (Overall Token Frequency) from token's json file in index
+            # Get RAW TF (Token Frequency in all docs) from token's json file in index
             RawTF = tokenInfo["freq"]
             # Get N (Number of docs the token is in) from token's json file in index (not right??)
             #N = len(tokenInfo["listDocIDs"])
@@ -144,9 +140,6 @@ def calculateTFIDF(queryList, unrankedDocList, folderPath):
                 # If current DocID is in our dictionary, add to its freq total
                 if currentDocURL in docFreqDict:
                     docFreqDict[currentDocURL] += int(indexItems[1])
-        
-        #for key, value in docFreqDict.items():   
-        #    print(f"freqInDoc '{key}' for {token} = {value}")
 
         # Calculate TF-IDF score for this document
         for key in tfidfDict:
@@ -157,7 +150,6 @@ def calculateTFIDF(queryList, unrankedDocList, folderPath):
     
     # Note: tfidfDict considers the entire query (Works similar to BoolAnd search)
     return tfidfDict
-
 
 
 ### Helper Functions (aka functions called by other functions) ###
@@ -181,12 +173,13 @@ def getAllFilePaths(directoryPath: str) -> list:
                 hashTable[index] = str(fullFilePath)
 
     # Writes "hashtable" file that maps the docIDs to filepaths of those documents.
-    with open(os.path.join("partial_indexes", "hashtable.txt"), "w+") as hash:
+    with open(os.path.join("index", "hashtable.txt"), "w+") as hash:
         hash.write(json.dumps(hashTable))
 
     return filePathsList
 
 
+# Tokenizes and collects data from one json file from the "DEV" corpus, returns a dict of (token : Posting)
 def tokenize(fileItem: list) -> dict:
     ps = PorterStemmer()
     tokenDict = dict()
@@ -201,115 +194,60 @@ def tokenize(fileItem: list) -> dict:
         # initialize BeautifulSoup object and pass in html content
         soup = BeautifulSoup(htmlContent, 'html.parser')
 
-        # removes comments from text
+        # Deletes HTML comments, javascript, and css from text
         for tag in soup(text=lambda text: isinstance(text, Comment)):
             tag.extract()
-
-        # removes javascript and css from text
         for element in soup.findAll(['script', 'style']):
             element.extract()
 
-        # add all tokens found from html response WITH TAGS INTACT
-        varTemp = soup.get_text()
-        listTemp = re.split(r"[^a-z0-9']+", varTemp.lower())
+        # Collect all words found from html response WITH TAGS IN A TUPLE WITH EACH WORD ('word', 'tag')
+        tagNamesList = ['title', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p']
+        tagsList = [soup.find_all('title'), soup.find_all('h1'), soup.find_all('h2'), soup.find_all('h3'), 
+                    soup.find_all('h4'), soup.find_all('h5'), soup.find_all('h6'), soup.find_all('p')]
+        taggedTextDict = dict()
+        for i, tagSubList in enumerate(tagsList):
+            taggedTextDict[tagNamesList[i]] = list()
+            for phrase in tagSubList:
+                for word in re.split(r"[^a-z0-9']+", phrase.get_text().lower()):
+                    taggedTextDict.get(tagNamesList[i]).append(word)
 
-        for word in listTemp:
-            if (len(word) == 0):  # ignore empty strings
-                continue
-            if (len(word) > 30):  # ignore words like ivborw0kggoaaaansuheugaaabaaaaaqcamaaaaolq9taaaaw1bmveuaaaacagiahb0bhb0bhr0ahb4chh8dhx8eicifisiukt4djzankywplcwhltkfpl8nn0clpvm9qumvvxu8wnvbrezesepkyxvwzxbpbnjqb3jtcxruc3vvdxhzdnhyehtefjvdf5xtjkv
-                continue
-            if (word[0] == "'"):  # ignore words that start with '
-                continue
-            if (len(word) == 1 and word.isalpha()): # ignore single characters
-                continue
+        # Store words as tokens in tokenDict, ignore words that are bad
+        for tag, wordList in taggedTextDict.items():
+            for word in wordList:
+                if (len(word) == 0):  # ignore empty strings
+                    continue
+                if (len(word) > 30):  # ignore words like ivborw0kggoaaaansuheugaaabaaaaaqcamaaaaolq9taaaaw1bmveuaaaacagiahb0bhb0bhr0ahb4chh8dhx8eicifisiukt4djzankywplcwhltkfpl8nn0clpvm9qumvvxu8wnvbrezesepkyxvwzxbpbnjqb3jtcxruc3vvdxhzdnhyehtefjvdf5xtjkv
+                    continue
+                if (word[0] == "'"):  # ignore words that start with '
+                    continue
+                if (len(word) == 1 and word.isalpha()): # ignore single characters
+                    continue
 
-            word = ps.stem(word)  # run Porter stemmer on token
-            if word in tokenDict:
-                tokenDict.get(word).incFreq()
-            else:
-                tokenDict[word] = Posting(docID, 1, )
+                # Run Porter stemmer on token
+                word = ps.stem(word)
+                if word in tokenDict:
+                    tokenDict.get(word).incFreq()
+                else:
+                    tokenDict[word] = Posting(docID, 1, tag)
 
-        # Write partial indexes to text files ("store on disk")
-        #buildIndex(tokenDict)
-        buildMultipleIndexes(tokenDict)
-        # change the code here to save Postings (tdif, frequency count, linkedList of DocID's, etc)
+        # Write tokens and their Postings to a text file ("store on disk")
+        buildIndex(tokenDict)
+        #buildMultipleIndexes(tokenDict)
         return tokenDict
-
+        
 
 def buildIndex(tokenDict : dict) -> None:
-    # write text files to store indexing data for merging later
-    with open(os.path.join("partial_indexes", "index.txt"), "a") as partialIndex:
+    # Write index.txt to store indexing data for merging later
+    with open(os.path.join("index", "index.txt"), "a") as partialIndex:
         for key in sorted(tokenDict):
-            partialIndex.write(key + " : " + str(tokenDict.get(key).show()) + '\n')
-
-def buildMultipleIndexes(tokenDict):
-    # write separate text files to store data for merging later.
-    cutOff = len(tokenDict)//6 #divide token dict into 5 parts
-    sortedTokens = sorted(tokenDict)
-
-    partialIndex = open(os.path.join("partial_indexes", "index1.txt"), "a")
-    for val in sortedTokens[:cutOff]:
-        partialIndex.write(val + " : " + str(tokenDict.get(val).show()) + '\n')
-    partialIndex.close()
-
-    partialIndex = open(os.path.join("partial_indexes", "index2.txt"), "a")
-    for val in sortedTokens[cutOff:cutOff*2]:
-        partialIndex.write(val + " : " + str(tokenDict.get(val).show()) + '\n')
-    partialIndex.close()
-
-    partialIndex = open(os.path.join("partial_indexes", "index3.txt"), "a")
-    for val in sortedTokens[cutOff*2:cutOff*3]:
-        partialIndex.write(val + " : " + str(tokenDict.get(val).show()) + '\n')
-    partialIndex.close()
-
-    partialIndex = open(os.path.join("partial_indexes", "index4.txt"), "a")
-    for val in sortedTokens[cutOff*4:cutOff*5]:
-        partialIndex.write(val + " : " + str(tokenDict.get(val).show()) + '\n')
-    partialIndex.close()
-
-    partialIndex = open(os.path.join("partial_indexes", "index5.txt"), "a")
-    for val in sortedTokens[cutOff*5:]:
-        partialIndex.write(val + " : " + str(tokenDict.get(val).show()) + '\n')
-    partialIndex.close()
-
-
-def mergeIndexes():
-    partialIndex = open(os.path.join("partial_indexes", f"index.txt"), "a")
-
-    partialIndex1 = open(os.path.join("partial_indexes", f"index1.txt"), "a")
-    for line in partialIndex1:
-        partialIndex.write(line)
-    partialIndex1.close()
-
-    partialIndex2 = open(os.path.join("partial_indexes", f"index2.txt"), "a")
-    for line in partialIndex2:
-        partialIndex.write(line)
-    partialIndex2.close()
-
-    partialIndex3 = open(os.path.join("partial_indexes", f"index3.txt"), "a")
-    for line in partialIndex3:
-        partialIndex.write(line)
-    partialIndex3.close()
-
-    partialIndex4 = open(os.path.join("partial_indexes", f"index4.txt"), "a")
-    for line in partialIndex4:
-        partialIndex.write(line)
-    partialIndex4.close()
-
-    partialIndex5 = open(os.path.join("partial_indexes", f"index5.txt"), "a")
-    for line in partialIndex5:
-        partialIndex.write(line)
-    partialIndex5.close()
-
-    partialIndex.close()
-
+            partialIndex.write(key + " : " + str(tokenDict.get(key).showData()) + '\n')
 
 
 if __name__ == '__main__':
     # Aljon - Big laptop
     #folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
     # Aljon - Small laptop
-    #folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
+    folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
 
     # William
     #folderPath = "C:\\Anaconda3\\envs\\Projects\\DEV"
@@ -322,14 +260,19 @@ if __name__ == '__main__':
     # Art - linux
     #folderPath = "/home/anon/Downloads/DEV"
 
-    #print("Creating partial index folders...")
-    #createPartialIndexes()
-    #print("Parsing JSON files, creating index.txt...")
-    #parseJSONFiles(folderPath)
-    #print("Merge partial indexes")
-    #mergeIndexes()
-    #print("Merging tokens, organizing files into partial index folders")
-    #mergeTokens()
+
+    print("Creating partial index folders...")
+    createPartialIndexes()
+
+    print("Parsing 'DEV' JSON files, building index.txt...")
+    parseJSONFiles(folderPath)
+
+    print("Merging tokens from index.txt, storing token.JSON files into index...")
+    mergeTokens()
+
+    # Note: Calculating TF-IDF has to be done AFTER mergeTokens()
+    # Because it needs the full frequency for each token
     #print("Calculating TF-IDF scores for each token...")
     #calculateTFIDF()
+
     print("-----DONE!-----")
