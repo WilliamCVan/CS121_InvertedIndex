@@ -11,6 +11,7 @@ from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 import math
 import utils as util
+import hashlib
 
 
 # Data Structures
@@ -66,6 +67,44 @@ def parseJSONFiles(directoryPath: str) -> None:
     pool.join()
     '''
 
+def urlHashTableBuilder(directoryPath) -> None:
+    uniqueURLDict = dict()  #holds docID : url
+    dupeURLDict = dict()
+    hashSets = set()
+
+    filePathsList = getAllFilePaths(directoryPath)  # 55K+ json files to process
+
+    for fileObj in filePathsList:
+        filePath = fileObj[1]
+        docID = int(fileObj[0])
+
+        with open(filePath, 'r') as content_file:
+            textContent = content_file.read()
+            jsonOBJ = json.loads(textContent)
+            htmlContent = jsonOBJ["content"]
+            urlContent = jsonOBJ["url"]
+
+            # initialize BeautifulSoup object and pass in html content
+            soup = BeautifulSoup(htmlContent, 'html.parser')
+
+            # return if html text has identical hash
+            # add all tokens found from html response with tags removed
+            varTemp = soup.get_text()
+            hashOut = hashlib.md5(varTemp.encode('utf-8')).hexdigest()
+            if hashOut in hashSets:
+                dupeURLDict[docID] = urlContent
+                continue
+
+            # add unique url to redis
+            uniqueURLDict[docID] = urlContent
+
+            #add hash to set
+            hashSets.add(hashOut)
+
+    with open(os.path.join("C:\\Anaconda3\\envs\\Projects\\developer", "hashurls.txt"), "w") as hash:
+        hash.write(json.dumps(uniqueURLDict))
+    with open(os.path.join("C:\\Anaconda3\\envs\\Projects\\developer", "sameurls.txt"), "w") as hash:
+        hash.write(json.dumps(dupeURLDict))
 
 # Reads index.txt line by line, then sums the frequencies of each token.
 # Next, it collects a list of DocIDs into a list for each token.
@@ -157,31 +196,35 @@ def calculateTFIDF(token, unrankedDocList, folderPath):
 
 # Gets all filepaths
 def getAllFilePaths(directoryPath: str) -> list:
-    filePathsList = list()
-    hashTable = dict()
+    listFilePaths = list()
+    hashTableIDToUrl = dict()
 
     # create list of all subdirectories that we need to process
     pathParent = Path(directoryPath)
     directory_list = [(pathParent / dI) for dI in os.listdir(directoryPath) if
                       Path(Path(directoryPath).joinpath(dI)).is_dir()]
 
+    iDocID = 0
     # getting all the .json file paths and adding them to a list to be processed by threads calling tokenize()
-    for index, directory in enumerate(directory_list):
-        for file in Path(directory).iterdir():
-            if file.is_file():
-                fullFilePath = directory / file.name
-                filePathsList.append([index, str(fullFilePath)])
-                hashTable[index] = str(fullFilePath)
+    # also creates a hashtable that maps docID => filepath urls
+    for directory in directory_list:
+        # print(str(directory))
+        for files in Path(directory).iterdir():
+            if files.is_file():
+                fullFilePath = directory / files.name
+                listFilePaths.append([iDocID, str(fullFilePath)])
+                hashTableIDToUrl[iDocID] = str(fullFilePath)
+                iDocID += 1
 
     # Writes "hashtable" file that maps the docIDs to filepaths of those documents.
     with open(os.path.join("index", "hashtable.txt"), "w+") as hash:
-        hash.write(json.dumps(hashTable))
+        hash.write(json.dumps(hashTableIDToUrl))
 
-    return filePathsList
+    return listFilePaths
 
 
-# Tokenizes and collects data from one json file from the "DEV" corpus, returns a dict of (token : Posting)
-def tokenize(fileItem: list) -> dict:
+# Tokenizes and collects data from one json file from the "DEV" corpus
+def tokenize(fileItem: list) -> None:
     ps = PorterStemmer()
     tokenDict = dict()
     filePath = fileItem[1]
@@ -210,14 +253,16 @@ def tokenize(fileItem: list) -> dict:
 
 
         ##### REDIS ONLY START #####
+        urlContent = jsonOBJ["url"]
+
         # return if html text has identical hash
         # add all tokens found from html response with tags removed
         varTemp = soup.get_text()
         if util.isHashSame(varTemp):
-            return dict()
+            util.addDuplicateURL(docID, urlContent)
+            return
 
         # add unique url to redis
-        urlContent = jsonOBJ["url"]
         util.addUniqueURL(docID, urlContent)
         ##### REDIS ONLY END #####
 
@@ -251,7 +296,7 @@ def tokenize(fileItem: list) -> dict:
         # Write tokens and their Postings to a text file ("store on disk")
         buildIndex(tokenDict)
         #buildMultipleIndexes(tokenDict)
-        return tokenDict
+        #return tokenDict
         
 
 def buildIndex(tokenDict : dict) -> None:
@@ -263,12 +308,13 @@ def buildIndex(tokenDict : dict) -> None:
 
 if __name__ == '__main__':
     # Aljon - Big laptop
-    #folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
+    folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
     # Aljon - Small laptop
     #folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
 
-    # William
-    folderPath = "C:\\Anaconda3\\envs\\Projects\\developer\\DEV"
+    # # William
+    # folderPath = "C:\\Anaconda3\\envs\\Projects\\developer\\DEV"
+    # urlHashTableBuilder(folderPath)
 
     # Jerome
     #folderPath = "C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\DEV"
