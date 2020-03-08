@@ -10,6 +10,7 @@ nltk.download('punkt')
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 import math
+import utils as util
 
 
 # Data Structures
@@ -48,13 +49,11 @@ def createPartialIndexes() -> None:
 
 
 # Uses multithreading, tokenizes every document in the "DEV" corpus
-def parseJSONFiles(directoryPath: str) -> int:
-    filePathsList = getAllFilePaths(directoryPath)
-    
-    i = 0
-    while i < 100:
-        tokenize(filePathsList[i])
-        i += 1
+def parseJSONFiles(directoryPath: str) -> None:
+    filePathsList = getAllFilePaths(directoryPath) #55K+ json files to process
+
+    for filePath in filePathsList:
+        tokenize(filePath)
     
     '''
     # https://stackoverflow.com/questions/2846653/how-can-i-use-threading-in-python
@@ -209,6 +208,20 @@ def tokenize(fileItem: list) -> dict:
         for tag in tagNamesList:
             tagsTextList.append(soup.find_all(tag))
 
+
+        ##### REDIS ONLY START #####
+        # return if html text has identical hash
+        # add all tokens found from html response with tags removed
+        varTemp = soup.get_text()
+        if util.isHashSame(varTemp):
+            return dict()
+
+        # add unique url to redis
+        urlContent = jsonOBJ["url"]
+        util.addUniqueURL(docID, urlContent)
+        ##### REDIS ONLY END #####
+
+
         taggedTextDict = dict()
         for i, tagSubList in enumerate(tagsTextList):
             taggedTextDict[tagNamesList[i]] = list()
@@ -252,10 +265,10 @@ if __name__ == '__main__':
     # Aljon - Big laptop
     #folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
     # Aljon - Small laptop
-    folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
+    #folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
 
     # William
-    #folderPath = "C:\\Anaconda3\\envs\\Projects\\DEV"
+    folderPath = "C:\\Anaconda3\\envs\\Projects\\developer\\DEV"
 
     # Jerome
     #folderPath = "C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\DEV"
