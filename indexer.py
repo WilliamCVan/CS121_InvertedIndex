@@ -118,7 +118,7 @@ def mergeTokens():
             posting = line.split(" : ")
             token = posting[0].replace("'", "")
             postingList = posting[1].replace("[", "").replace("]", "").replace("\n", "").split(", ")
-            
+
             # Collect data about the token from this line
             newDocID = int(postingList[0])
             newFreq = int(postingList[1])
@@ -132,19 +132,22 @@ def mergeTokens():
             if filePathFull.is_file():
                 with open(filePathFull, "r+") as posting:
                     # Add to the existing data and save updated values back to json
-                    posting.seek(0) # reset to beginning of file to overwrite
                     data = posting.read()
                     jsonObj = json.loads(data)
                     jsonObj["freq"] += newFreq
-                    jsonObj["docIDList"] = sorted(jsonObj["docIDList"].append( [newDocID, newTag] ))
+                    jsonObj["docIDList"].append([newDocID, newTag])
+                    jsonObj["docIDList"] = sorted(jsonObj["docIDList"])
+                    posting.seek(0)  # reset to beginning of file to overwrite
                     posting.write(json.dumps(jsonObj))
+                    posting.truncate()
 
             else:
                 # Otherwise, write it from scratch
-                jsonObj = {"freq": newFreq, "listDocIDs": [ [newDocID, newTag] ]}
+                jsonObj = {"freq": newFreq, "docIDList": [[newDocID, newTag]]}
                 with open(filePathFull, "w+") as posting:
                     posting.write(json.dumps(jsonObj))
-        except:
+        except Exception as e:
+            print(e)
             continue
 
 

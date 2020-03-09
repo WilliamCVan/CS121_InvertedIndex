@@ -1,4 +1,4 @@
-from multiprocessing import Pool
+from multiprocessing import Pool, Queue, Lock
 from pathlib import Path
 import os
 import re
@@ -6,11 +6,13 @@ import json
 from bs4 import BeautifulSoup, Comment
 import string
 import nltk
-# nltk.download('punkt')
+
+#nltk.download('punkt')
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 import math
 import utils as util
+import hashlib
 
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet as wn
@@ -21,7 +23,6 @@ tag_map = defaultdict(lambda: wn.NOUN)
 tag_map['J'] = wn.ADJ
 tag_map['V'] = wn.VERB
 tag_map['R'] = wn.ADV
-
 
 # Data Structures
 
@@ -61,8 +62,8 @@ def createPartialIndexes() -> None:
 def parseJSONFiles(directoryPath: str) -> None:
     filePathsList = getAllFilePaths(directoryPath)  # 55K+ json files to process
 
-    #for filePath in filePathsList:
-        #tokenize(filePath)
+    # for filePath in filePathsList:
+    # tokenize(filePath)
 
     # https://stackoverflow.com/questions/2846653/how-can-i-use-threading-in-python
     # Make the Pool of workers
@@ -72,6 +73,47 @@ def parseJSONFiles(directoryPath: str) -> None:
     # Close the pool and wait for the work to finish
     pool.close()
     pool.join()
+
+
+def urlHashTableBuilder(directoryPath) -> None:
+    uniqueURLDict = dict()  # holds docID : url
+    dupeURLDict = dict()
+    hashSets = set()
+
+    filePathsList = getAllFilePaths(directoryPath)  # 55K+ json files to process
+
+    for fileObj in filePathsList:
+        filePath = fileObj[1]
+        docID = int(fileObj[0])
+
+        with open(filePath, 'r') as content_file:
+            textContent = content_file.read()
+            jsonOBJ = json.loads(textContent)
+            htmlContent = jsonOBJ["content"]
+            urlContent = jsonOBJ["url"]
+
+            # initialize BeautifulSoup object and pass in html content
+            soup = BeautifulSoup(htmlContent, 'html.parser')
+
+            # return if html text has identical hash
+            # add all tokens found from html response with tags removed
+            varTemp = soup.get_text()
+            hashOut = hashlib.md5(varTemp.encode('utf-8')).hexdigest()
+            if hashOut in hashSets:
+                dupeURLDict[docID] = urlContent
+                continue
+
+            # add unique url to redis
+            uniqueURLDict[docID] = urlContent
+
+            # add hash to set
+            hashSets.add(hashOut)
+
+    with open(os.path.join("C:\\Anaconda3\\envs\\Projects\\developer", "hashurls.txt"), "w") as hash:
+        hash.write(json.dumps(uniqueURLDict))
+    with open(os.path.join("C:\\Anaconda3\\envs\\Projects\\developer", "sameurls.txt"), "w") as hash:
+        hash.write(json.dumps(dupeURLDict))
+
 
 def mergeHelper(line):
     try:
@@ -91,33 +133,48 @@ def mergeHelper(line):
 
         # If file already exists, then we read it and update it
         if filePathFull.is_file():
+            lock.acquire()
             with open(filePathFull, "r+") as posting:
                 # Add to the existing data and save updated values back to json
-                posting.seek(0)  # reset to beginning of file to overwrite
                 data = posting.read()
                 jsonObj = json.loads(data)
                 jsonObj["freq"] += newFreq
-                jsonObj["docIDList"] = sorted(jsonObj["docIDList"].append([newDocID, newTag]))
+                jsonObj["docIDList"].append([newDocID, newTag])
+                jsonObj["docIDList"] = sorted(jsonObj["docIDList"])
+                posting.seek(0)  # reset to beginning of file to overwrite
                 posting.write(json.dumps(jsonObj))
+                posting.truncate()
+            lock.release()
 
         else:
             # Otherwise, write it from scratch
-            jsonObj = {"freq": newFreq, "listDocIDs": [[newDocID, newTag]]}
+            jsonObj = {"freq": newFreq, "docIDList": [[newDocID, newTag]]}
+            lock.acquire()
             with open(filePathFull, "w+") as posting:
                 posting.write(json.dumps(jsonObj))
-    except:
+            lock.release()
+
+    except Exception as e:
+        print(e)
         pass
+
+def init(l):
+    #used for multMergeTokens
+    global lock
+    lock = l
 
 def multiMergeTokens():
     indexTxt = open(os.path.join("index", "index.txt"), 'r')
     lineBuffer = []
+    l = Lock()
+    #pool = Pool(initializer=init, initargs=(l,),processes=20)
 
     for line in indexTxt:
         lineBuffer.append(line)
 
         if len(lineBuffer) >= 10000:
-            pool = Pool(processes=20)
             # Each worker get a directory from list above, and begin tokenizing all json files inside
+            pool = Pool(initializer=init, initargs=(l,), processes=20)
             pool.map(mergeHelper, lineBuffer)
             # Close the pool and wait for the work to finish
             pool.close()
@@ -126,7 +183,6 @@ def multiMergeTokens():
             lineBuffer.clear()
 
     indexTxt.close()
-
 
 
 # Reads index.txt line by line, then sums the frequencies of each token.
@@ -155,24 +211,27 @@ def mergeTokens():
             if filePathFull.is_file():
                 with open(filePathFull, "r+") as posting:
                     # Add to the existing data and save updated values back to json
-                    posting.seek(0)  # reset to beginning of file to overwrite
                     data = posting.read()
                     jsonObj = json.loads(data)
                     jsonObj["freq"] += newFreq
-                    jsonObj["docIDList"] = sorted(jsonObj["docIDList"].append([newDocID, newTag]))
+                    jsonObj["docIDList"].append([newDocID, newTag])
+                    jsonObj["docIDList"] = sorted(jsonObj["docIDList"])
+                    posting.seek(0)  # reset to beginning of file to overwrite
                     posting.write(json.dumps(jsonObj))
+                    posting.truncate()
 
             else:
                 # Otherwise, write it from scratch
-                jsonObj = {"freq": newFreq, "listDocIDs": [[newDocID, newTag]]}
+                jsonObj = {"freq": newFreq, "docIDList": [[newDocID, newTag]]}
                 with open(filePathFull, "w+") as posting:
                     posting.write(json.dumps(jsonObj))
-        except:
+        except Exception as e:
+            print(e)
             continue
 
 
 # Calculate TF-IDF scores for a given (token:document) in index.txt and 'DEV' corpus
-def calculateTFIDF(queryList, unrankedDocList, folderPath):
+def calculateTFIDF(queryList, unrankedDocList, folderPath):# CHANGED TOKEN PARAM TO QUERYLIST CAUSE IDE KEEPS HIGHLIGHTING IT AS AN ERROR
     indexFile = open(os.path.join(folderPath, "index.txt"), 'r')
     hashtableFile = open(os.path.join(folderPath, "hashtable.txt"), 'r')
     hashtable = json.load(hashtableFile)
@@ -219,31 +278,35 @@ def calculateTFIDF(queryList, unrankedDocList, folderPath):
 
 # Gets all filepaths
 def getAllFilePaths(directoryPath: str) -> list:
-    filePathsList = list()
-    hashTable = dict()
+    listFilePaths = list()
+    hashTableIDToUrl = dict()
 
     # create list of all subdirectories that we need to process
     pathParent = Path(directoryPath)
     directory_list = [(pathParent / dI) for dI in os.listdir(directoryPath) if
                       Path(Path(directoryPath).joinpath(dI)).is_dir()]
 
+    iDocID = 0
     # getting all the .json file paths and adding them to a list to be processed by threads calling tokenize()
-    for index, directory in enumerate(directory_list):
-        for file in Path(directory).iterdir():
-            if file.is_file():
-                fullFilePath = directory / file.name
-                filePathsList.append([index, str(fullFilePath)])
-                hashTable[index] = str(fullFilePath)
+    # also creates a hashtable that maps docID => filepath urls
+    for directory in directory_list:
+        # print(str(directory))
+        for files in Path(directory).iterdir():
+            if files.is_file():
+                fullFilePath = directory / files.name
+                listFilePaths.append([iDocID, str(fullFilePath)])
+                hashTableIDToUrl[iDocID] = str(fullFilePath)
+                iDocID += 1
 
     # Writes "hashtable" file that maps the docIDs to filepaths of those documents.
     with open(os.path.join("index", "hashtable.txt"), "w+") as hash:
-        hash.write(json.dumps(hashTable))
+        hash.write(json.dumps(hashTableIDToUrl))
 
-    return filePathsList
+    return listFilePaths
 
 
-# Tokenizes and collects data from one json file from the "DEV" corpus, returns a dict of (token : Posting)
-def tokenize(fileItem: list) -> dict:
+# Tokenizes and collects data from one json file from the "DEV" corpus
+def tokenize(fileItem: list) -> None:
     ps = PorterStemmer().stem
     wnl = WordNetLemmatizer()
     lem = wnl.lemmatize
@@ -275,14 +338,16 @@ def tokenize(fileItem: list) -> dict:
             tagsTextList.append(soup.find_all(tag))
 
         ##### REDIS ONLY START #####
+        urlContent = jsonOBJ["url"]
+
         # return if html text has identical hash
         # add all tokens found from html response with tags removed
         # varTemp = soup.get_text()
         # if util.isHashSame(varTemp):
-        # return dict()
+        #    util.addDuplicateURL(docID, urlContent)
+        #    return
 
         # add unique url to redis
-        # urlContent = jsonOBJ["url"]
         # util.addUniqueURL(docID, urlContent)
         ##### REDIS ONLY END #####
 
@@ -298,7 +363,8 @@ def tokenize(fileItem: list) -> dict:
             for word in wordList:
                 if (len(word) == 0):  # ignore empty strings
                     continue
-                if (len(word) > 30 and tag != 'a'):  # ignore words like ivborw0kggoaaaansuheugaaabaaaaaqcamaaaaolq9taaaaw1bmveuaaaacagiahb0bhb0bhr0ahb4chh8dhx8eicifisiukt4djzankywplcwhltkfpl8nn0clpvm9qumvvxu8wnvbrezesepkyxvwzxbpbnjqb3jtcxruc3vvdxhzdnhyehtefjvdf5xtjkv
+                if (len(
+                        word) > 30 and tag != 'a'):  # ignore words like ivborw0kggoaaaansuheugaaabaaaaaqcamaaaaolq9taaaaw1bmveuaaaacagiahb0bhb0bhr0ahb4chh8dhx8eicifisiukt4djzankywplcwhltkfpl8nn0clpvm9qumvvxu8wnvbrezesepkyxvwzxbpbnjqb3jtcxruc3vvdxhzdnhyehtefjvdf5xtjkv
                     continue  # But accept any URLs that may be large
                 if (word[0] == "'"):  # ignore words that start with '
                     continue
@@ -310,24 +376,26 @@ def tokenize(fileItem: list) -> dict:
                     # Checking for the above and if word is not already cached saves time.
                     pos = tag_map[pos_tag((word,))[0][1][0]]
                     lemWord = lem(word, pos)
-                    if word[-2:] == "ly" or word[-4:] == "ness" or word[-3:] == "ish":  # Catches any ly, ness, or ish that lemmatize doesnt catch. Words are less accurate, but cuts off extraneous words.
+                    if word[-2:] == "ly" or word[-4:] == "ness" or word[
+                                                                   -3:] == "ish":  # Catches any ly, ness, or ish that lemmatize doesnt catch. Words are less accurate, but cuts off extraneous words.
                         lemWord = ps(word)
                     lemmaCache[word] = lemWord
                 else:
-                    lemmaCache[word] = word #the lemma of the word is itself
+                    lemmaCache[word] = word  # the lemma of the word is itself
 
                 if lemmaCache[word] in tokenDict:
                     tokenDict.get(lemmaCache[word]).incFreq()
                 else:
                     tokenDict[lemmaCache[word]] = Posting(docID, 1, tag)
 
-                if len(lemmaCache) > 5000000:#Save up to 5million tokens, and then clear to prevent too much memory error
+                if len(
+                        lemmaCache) > 5000000:  # Save up to 5million tokens, and then clear to prevent too much memory error
                     lemmaCache.clear()
 
         # Write tokens and their Postings to a text file ("store on disk")
         buildIndex(tokenDict)
         # buildMultipleIndexes(tokenDict)
-        return tokenDict
+        # return tokenDict
 
 
 def buildIndex(tokenDict: dict) -> None:
@@ -339,12 +407,13 @@ def buildIndex(tokenDict: dict) -> None:
 
 if __name__ == '__main__':
     # Aljon - Big laptop
-    # folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
+    #folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
     # Aljon - Small laptop
     # folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
 
-    # William
+    # # William
     # folderPath = "C:\\Anaconda3\\envs\\Projects\\developer\\DEV"
+    # urlHashTableBuilder(folderPath)
 
     # Jerome
     folderPath = "C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\DEV"
@@ -361,7 +430,7 @@ if __name__ == '__main__':
     #parseJSONFiles(folderPath)
 
     print("Merging tokens from index.txt, storing token.JSON files into index...")
-    multiMergeTokens()
+    mergeTokens()
 
     # Note: Calculating TF-IDF has to be done AFTER mergeTokens()
     # Because it needs the full frequency for each token
