@@ -115,76 +115,6 @@ def urlHashTableBuilder(directoryPath) -> None:
         hash.write(json.dumps(dupeURLDict))
 
 
-def mergeHelper(line):
-    try:
-        # Convert raw text in this line into Posting data
-        posting = line.split(" : ")
-        token = posting[0].replace("'", "")
-        postingList = posting[1].replace("[", "").replace("]", "").replace("\n", "").split(", ")
-
-        # Collect data about the token from this line
-        newDocID = int(postingList[0])
-        newFreq = int(postingList[1])
-        newTag = str(postingList[2].strip("'"))
-
-        # Create a new filename and filepath for this token
-        firstLetter = token[0:1]
-        filePathFull = Path("index") / firstLetter / (token + ".json")
-
-        # If file already exists, then we read it and update it
-        if filePathFull.is_file():
-            lock.acquire()
-            with open(filePathFull, "r+") as posting:
-                # Add to the existing data and save updated values back to json
-                data = posting.read()
-                jsonObj = json.loads(data)
-                jsonObj["freq"] += newFreq
-                jsonObj["docIDList"].append([newDocID, newTag])
-                jsonObj["docIDList"] = sorted(jsonObj["docIDList"])
-                posting.seek(0)  # reset to beginning of file to overwrite
-                posting.write(json.dumps(jsonObj))
-                posting.truncate()
-            lock.release()
-
-        else:
-            # Otherwise, write it from scratch
-            jsonObj = {"freq": newFreq, "docIDList": [[newDocID, newTag]]}
-            lock.acquire()
-            with open(filePathFull, "w+") as posting:
-                posting.write(json.dumps(jsonObj))
-            lock.release()
-
-    except Exception as e:
-        print(e)
-        pass
-
-def init(l):
-    #used for multMergeTokens
-    global lock
-    lock = l
-
-def multiMergeTokens():
-    indexTxt = open(os.path.join("index", "index.txt"), 'r')
-    lineBuffer = []
-    l = Lock()
-    #pool = Pool(initializer=init, initargs=(l,),processes=20)
-
-    for line in indexTxt:
-        lineBuffer.append(line)
-
-        if len(lineBuffer) >= 10000:
-            # Each worker get a directory from list above, and begin tokenizing all json files inside
-            pool = Pool(initializer=init, initargs=(l,), processes=20)
-            pool.map(mergeHelper, lineBuffer)
-            # Close the pool and wait for the work to finish
-            pool.close()
-            pool.join()
-
-            lineBuffer.clear()
-
-    indexTxt.close()
-
-
 # Reads index.txt line by line, then sums the frequencies of each token.
 # Next, it collects a list of DocIDs into a list for each token.
 # Finally, it adds the tag the token had originally
@@ -416,21 +346,21 @@ if __name__ == '__main__':
     # urlHashTableBuilder(folderPath)
 
     # Jerome
-    folderPath = "C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\DEV"
+    #folderPath = "C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\DEV"
 
     # Art - windows
     # folderPath = "C:\\Users\\aghar\\Downloads\\DEV"
     # Art - linux
     # folderPath = "/home/anon/Downloads/DEV"
 
-    print("Creating partial index folders...")
-    createPartialIndexes()
+    #print("Creating partial index folders...")
+    #createPartialIndexes()
 
     #print("Parsing 'DEV' JSON files, building index.txt...")
     #parseJSONFiles(folderPath)
 
-    print("Merging tokens from index.txt, storing token.JSON files into index...")
-    mergeTokens()
+    #print("Merging tokens from index.txt, storing token.JSON files into index...")
+    #mergeTokens()
 
     # Note: Calculating TF-IDF has to be done AFTER mergeTokens()
     # Because it needs the full frequency for each token

@@ -147,7 +147,7 @@ def mergeTokens():
                 with open(filePathFull, "w+") as posting:
                     posting.write(json.dumps(jsonObj))
         except Exception as e:
-            print(e)
+            #print(e)
             continue
 
 
@@ -311,7 +311,7 @@ def buildIndex(tokenDict : dict) -> None:
 
 if __name__ == '__main__':
     # Aljon - Big laptop
-    folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
+    #folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
     # Aljon - Small laptop
     #folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
 
@@ -328,14 +328,14 @@ if __name__ == '__main__':
     #folderPath = "/home/anon/Downloads/DEV"
 
 
-    print("Creating partial index folders...")
-    createPartialIndexes()
+    #print("Creating partial index folders...")
+    #createPartialIndexes()
 
-    print("Parsing 'DEV' JSON files, building index.txt...")
-    parseJSONFiles(folderPath)
+    #print("Parsing 'DEV' JSON files, building index.txt...")
+    #parseJSONFiles(folderPath)
 
-    print("Merging tokens from index.txt, storing token.JSON files into index...")
-    mergeTokens()
+    #print("Merging tokens from index.txt, storing token.JSON files into index...")
+    #mergeTokens()
 
     # Note: Calculating TF-IDF has to be done AFTER mergeTokens()
     # Because it needs the full frequency for each token
