@@ -88,7 +88,7 @@ def calculateTFIDF(tokenFilePath : str) -> None:
         filename = os.path.splitext(basename)
 
         # Calculate TF-IDF score for current document
-        # doc[0] = DocID, doc[1] = RawDocTF (work in progress), doc[2] = Tag
+        # doc[0] = DocID, doc[1] = RawDocTF, doc[2] = Tag
         boostPercent = makeBoostPercent(doc[2])
         newData["docList"][doc[0]] = (1 + math.log(doc[1])) * math.log(N / len(docIDList)) * boostPercent
 

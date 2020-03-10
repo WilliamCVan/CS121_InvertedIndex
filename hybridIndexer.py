@@ -61,10 +61,6 @@ def createPartialIndexes() -> None:
 # Uses multithreading, tokenizes every document in the "DEV" corpus
 def parseJSONFiles(directoryPath: str) -> None:
     filePathsList = getAllFilePaths(directoryPath)  # 55K+ json files to process
-
-    # for filePath in filePathsList:
-    # tokenize(filePath)
-
     # https://stackoverflow.com/questions/2846653/how-can-i-use-threading-in-python
     # Make the Pool of workers
     pool = Pool(processes=20)
