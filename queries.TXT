@@ -1,2 +1,11 @@
+Queries of words not in index.txt:
 Coronavirus
 Lethality
+UCI
+
+Queries of words with high frequencies:
+jbehav(with lemmatization it is jbehave)
+jaxw
+jbi
+jboss
+jbundle
