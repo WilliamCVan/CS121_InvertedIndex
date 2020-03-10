@@ -177,6 +177,8 @@ folderPath = "C:\\Anaconda3\\envs\\Projects\\developer\\partial_indexes"
 part1Cache = None
 my_queue = queue.Queue()
 
+
+
 if __name__ == "__main__":
     while True:
         if not part1Cache:

@@ -146,53 +146,9 @@ def mergeTokens():
                 jsonObj = {"freq": newFreq, "docIDList": [[newDocID, newTag]]}
                 with open(filePathFull, "w+") as posting:
                     posting.write(json.dumps(jsonObj))
-        except Exception as e:
-            #print(e)
+        except Exception:
             continue
 
-
-# Calculate TF-IDF scores for a given (token:document) in index.txt and 'DEV' corpus
-def calculateTFIDF(token, unrankedDocList, folderPath):
-    indexFile = open(os.path.join(folderPath, "index.txt"), 'r')
-    hashtableFile = open(os.path.join(folderPath, "hashtable.txt"), 'r')
-    hashtable = json.load(hashtableFile)
-    N = 13518180 # N = len(indexTxt.readlines()) 
-    
-    # Create dict of {key=docURL : value=TF-IDF score}
-    tfidfDict = dict.fromkeys(unrankedDocList, 0)
-    for token in queryList:
-        with open(os.path.join(folderPath, queryList[0][0], f"{queryList[0]}.json"), 'r') as jsonFile:
-            tokenInfo = json.load(jsonFile)
-            # Get RAW TF (Token Frequency in all docs) from token's json file in index
-            RawTF = tokenInfo["freq"]
-            # Get N (Number of docs the token is in) from token's json file in index (not right??)
-            #N = len(tokenInfo["listDocIDs"])
-
-        #Create a "temporary" dict of {key=docURL : value=frequency of token in this doc}
-        docFreqDict = dict.fromkeys(unrankedDocList, 0)
-        # Return to top of file, if not already there
-        indexFile.seek(0)
-        for line in indexFile.readlines():
-            # Get the frequency of this token for this specific document
-            # Have to go line-by-line in index.txt to find them, but only once per token
-            line = str(line)
-            if line.startswith(token):
-                # Parses Posting from index.txt -> [0] = DocID, [1] = freq for this doc
-                indexItems = re.findall(r"\[.*\]", line)[0].strip("][").split(', ')
-                currentDocURL = hashtable[indexItems[0]]
-                # If current DocID is in our dictionary, add to its freq total
-                if currentDocURL in docFreqDict:
-                    docFreqDict[currentDocURL] += int(indexItems[1])
-
-        # Calculate TF-IDF score for this document
-        for key in tfidfDict:
-            if docFreqDict[key] == 0:
-                tfidfDict[key] = 0
-            else:
-                tfidfDict[key] = (1 + math.log(RawTF)) * math.log(N / docFreqDict[key])
-    
-    # Note: tfidfDict considers the entire query (Works similar to BoolAnd search)
-    return tfidfDict
 
 
 ### Helper Functions (aka functions called by other functions) ###
@@ -339,7 +295,6 @@ if __name__ == '__main__':
 
     # Note: Calculating TF-IDF has to be done AFTER mergeTokens()
     # Because it needs the full frequency for each token
-    #print("Calculating TF-IDF scores for each token...")
-    #calculateTFIDF()
+    # See tfidfIndexer.py for second pass of indexer
 
     print("-----DONE!-----")

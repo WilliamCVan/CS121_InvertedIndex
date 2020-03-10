@@ -160,8 +160,9 @@ def mergeTokens():
             continue
 
 
-# Calculate TF-IDF scores for a given (token:document) in index.txt and 'DEV' corpus
-def calculateTFIDF(queryList, unrankedDocList, folderPath):# CHANGED TOKEN PARAM TO QUERYLIST CAUSE IDE KEEPS HIGHLIGHTING IT AS AN ERROR
+# Calculate TF-IDF scores for each document within each token.json file
+# Rewrites those scores into each token.json file, replacing the tag that was there originally.
+def calculateTFIDF(tokensFolderPath):# CHANGED TOKEN PARAM TO QUERYLIST CAUSE IDE KEEPS HIGHLIGHTING IT AS AN ERROR
     indexFile = open(os.path.join(folderPath, "index.txt"), 'r')
     hashtableFile = open(os.path.join(folderPath, "hashtable.txt"), 'r')
     hashtable = json.load(hashtableFile)
@@ -204,6 +205,7 @@ def calculateTFIDF(queryList, unrankedDocList, folderPath):# CHANGED TOKEN PARAM
     return tfidfDict
 
 
+
 ### Helper Functions (aka functions called by other functions) ###
 
 # Gets all filepaths
@@ -220,7 +222,6 @@ def getAllFilePaths(directoryPath: str) -> list:
     # getting all the .json file paths and adding them to a list to be processed by threads calling tokenize()
     # also creates a hashtable that maps docID => filepath urls
     for directory in directory_list:
-        # print(str(directory))
         for files in Path(directory).iterdir():
             if files.is_file():
                 fullFilePath = directory / files.name
@@ -268,7 +269,7 @@ def tokenize(fileItem: list) -> None:
             tagsTextList.append(soup.find_all(tag))
 
         ##### REDIS ONLY START #####
-        urlContent = jsonOBJ["url"]
+        #urlContent = jsonOBJ["url"]
 
         # return if html text has identical hash
         # add all tokens found from html response with tags removed
@@ -335,11 +336,11 @@ def buildIndex(tokenDict: dict) -> None:
             partialIndex.write(key + " : " + str(tokenDict.get(key).showData()) + '\n')
 
 
+
 if __name__ == '__main__':
     # Aljon - Big laptop
     #folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
-    # Aljon - Small laptop
-    # folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
+    folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
 
     # # William
     # folderPath = "C:\\Anaconda3\\envs\\Projects\\developer\\DEV"
@@ -353,6 +354,8 @@ if __name__ == '__main__':
     # Art - linux
     # folderPath = "/home/anon/Downloads/DEV"
 
+
+    # First Pass: Term frequency and Getting HTML tags
     #print("Creating partial index folders...")
     #createPartialIndexes()
 
@@ -361,10 +364,5 @@ if __name__ == '__main__':
 
     #print("Merging tokens from index.txt, storing token.JSON files into index...")
     #mergeTokens()
-
-    # Note: Calculating TF-IDF has to be done AFTER mergeTokens()
-    # Because it needs the full frequency for each token
-    # print("Calculating TF-IDF scores for each token...")
-    # calculateTFIDF()
 
     print("-----DONE!-----")
