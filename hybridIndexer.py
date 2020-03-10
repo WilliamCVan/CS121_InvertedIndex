@@ -143,8 +143,7 @@ def mergeTokens():
                     # Add to the existing data and save updated values back to json
                     data = posting.read()
                     jsonObj = json.loads(data)
-                    jsonObj["freq"] += newFreq
-                    jsonObj["docIDList"].append([newDocID, newTag])
+                    jsonObj["docIDList"].append([newDocID, newFreq, newTag])
                     jsonObj["docIDList"] = sorted(jsonObj["docIDList"])
                     posting.seek(0)  # reset to beginning of file to overwrite
                     posting.write(json.dumps(jsonObj))
@@ -152,57 +151,12 @@ def mergeTokens():
 
             else:
                 # Otherwise, write it from scratch
-                jsonObj = {"freq": newFreq, "docIDList": [[newDocID, newTag]]}
+                jsonObj = {"docList": [[newDocID, newFreq, newTag]]}
                 with open(filePathFull, "w+") as posting:
                     posting.write(json.dumps(jsonObj))
         except Exception as e:
             print(e)
             continue
-
-
-# Calculate TF-IDF scores for each document within each token.json file
-# Rewrites those scores into each token.json file, replacing the tag that was there originally.
-def calculateTFIDF(tokensFolderPath):# CHANGED TOKEN PARAM TO QUERYLIST CAUSE IDE KEEPS HIGHLIGHTING IT AS AN ERROR
-    indexFile = open(os.path.join(folderPath, "index.txt"), 'r')
-    hashtableFile = open(os.path.join(folderPath, "hashtable.txt"), 'r')
-    hashtable = json.load(hashtableFile)
-    N = 13518180  # N = len(indexTxt.readlines())
-
-    # Create dict of {key=docURL : value=TF-IDF score}
-    tfidfDict = dict.fromkeys(unrankedDocList, 0)
-    for token in queryList:
-        with open(os.path.join(folderPath, queryList[0][0], f"{queryList[0]}.json"), 'r') as jsonFile:
-            tokenInfo = json.load(jsonFile)
-            # Get RAW TF (Token Frequency in all docs) from token's json file in index
-            RawTF = tokenInfo["freq"]
-            # Get N (Number of docs the token is in) from token's json file in index (not right??)
-            # N = len(tokenInfo["listDocIDs"])
-
-        # Create a "temporary" dict of {key=docURL : value=frequency of token in this doc}
-        docFreqDict = dict.fromkeys(unrankedDocList, 0)
-        # Return to top of file, if not already there
-        indexFile.seek(0)
-        for line in indexFile.readlines():
-            # Get the frequency of this token for this specific document
-            # Have to go line-by-line in index.txt to find them, but only once per token
-            line = str(line)
-            if line.startswith(token):
-                # Parses Posting from index.txt -> [0] = DocID, [1] = freq for this doc
-                indexItems = re.findall(r"\[.*\]", line)[0].strip("][").split(', ')
-                currentDocURL = hashtable[indexItems[0]]
-                # If current DocID is in our dictionary, add to its freq total
-                if currentDocURL in docFreqDict:
-                    docFreqDict[currentDocURL] += int(indexItems[1])
-
-        # Calculate TF-IDF score for this document
-        for key in tfidfDict:
-            if docFreqDict[key] == 0:
-                tfidfDict[key] = 0
-            else:
-                tfidfDict[key] = (1 + math.log(RawTF)) * math.log(N / docFreqDict[key])
-
-    # Note: tfidfDict considers the entire query (Works similar to BoolAnd search)
-    return tfidfDict
 
 
 
@@ -294,8 +248,7 @@ def tokenize(fileItem: list) -> None:
             for word in wordList:
                 if (len(word) == 0):  # ignore empty strings
                     continue
-                if (len(
-                        word) > 30 and tag != 'a'):  # ignore words like ivborw0kggoaaaansuheugaaabaaaaaqcamaaaaolq9taaaaw1bmveuaaaacagiahb0bhb0bhr0ahb4chh8dhx8eicifisiukt4djzankywplcwhltkfpl8nn0clpvm9qumvvxu8wnvbrezesepkyxvwzxbpbnjqb3jtcxruc3vvdxhzdnhyehtefjvdf5xtjkv
+                if (len(word) > 30 and tag != 'a'):  # ignore words like ivborw0kggoaaaansuheugaaabaaaaaqcamaaaaolq9taaaaw1bmveuaaaacagiahb0bhb0bhr0ahb4chh8dhx8eicifisiukt4djzankywplcwhltkfpl8nn0clpvm9qumvvxu8wnvbrezesepkyxvwzxbpbnjqb3jtcxruc3vvdxhzdnhyehtefjvdf5xtjkv
                     continue  # But accept any URLs that may be large
                 if (word[0] == "'"):  # ignore words that start with '
                     continue
@@ -307,8 +260,7 @@ def tokenize(fileItem: list) -> None:
                     # Checking for the above and if word is not already cached saves time.
                     pos = tag_map[pos_tag((word,))[0][1][0]]
                     lemWord = lem(word, pos)
-                    if word[-2:] == "ly" or word[-4:] == "ness" or word[
-                                                                   -3:] == "ish":  # Catches any ly, ness, or ish that lemmatize doesnt catch. Words are less accurate, but cuts off extraneous words.
+                    if word[-2:] == "ly" or word[-4:] == "ness" or word[-3:] == "ish":  # Catches any ly, ness, or ish that lemmatize doesnt catch. Words are less accurate, but cuts off extraneous words.
                         lemWord = ps(word)
                     lemmaCache[word] = lemWord
                 else:
@@ -325,8 +277,6 @@ def tokenize(fileItem: list) -> None:
 
         # Write tokens and their Postings to a text file ("store on disk")
         buildIndex(tokenDict)
-        # buildMultipleIndexes(tokenDict)
-        # return tokenDict
 
 
 def buildIndex(tokenDict: dict) -> None:
@@ -338,8 +288,7 @@ def buildIndex(tokenDict: dict) -> None:
 
 
 if __name__ == '__main__':
-    # Aljon - Big laptop
-    #folderPath = "C:\\Users\\aljon\\Documents\\IndexFiles\\DEV"
+    # Aljon
     folderPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\DEV"
 
     # # William
@@ -356,13 +305,13 @@ if __name__ == '__main__':
 
 
     # First Pass: Term frequency and Getting HTML tags
-    #print("Creating partial index folders...")
-    #createPartialIndexes()
+    print("Creating partial index folders...")
+    createPartialIndexes()
 
-    #print("Parsing 'DEV' JSON files, building index.txt...")
-    #parseJSONFiles(folderPath)
+    print("Parsing 'DEV' JSON files, building index.txt...")
+    parseJSONFiles(folderPath)
 
-    #print("Merging tokens from index.txt, storing token.JSON files into index...")
-    #mergeTokens()
+    print("Merging tokens from index.txt, storing token.JSON files into index...")
+    mergeTokens()
 
     print("-----DONE!-----")
