@@ -8,6 +8,8 @@ import string
 import nltk
 
 #nltk.download('punkt')
+#nltk.download('wordnet')
+#nltk.download('averaged_perceptron_tagger')
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 import math
@@ -61,6 +63,17 @@ def createPartialIndexes() -> None:
 # Uses multithreading, tokenizes every document in the "DEV" corpus
 def parseJSONFiles(directoryPath: str) -> None:
     filePathsList = getAllFilePaths(directoryPath)  # 55K+ json files to process
+
+    # For testing only
+    i = 0
+    for path in filePathsList:
+        print(path)
+        tokenize(path)
+        i += 1
+        if i > 100:
+          break  
+    return
+    
     # https://stackoverflow.com/questions/2846653/how-can-i-use-threading-in-python
     # Make the Pool of workers
     pool = Pool(processes=20)
@@ -118,41 +131,38 @@ def mergeTokens():
     indexTxt = open(os.path.join("index", "index.txt"), 'r')
 
     for line in indexTxt:
-        try:
-            # Convert raw text in this line into Posting data
-            posting = line.split(" : ")
-            token = posting[0].replace("'", "")
-            postingList = posting[1].replace("[", "").replace("]", "").replace("\n", "").split(", ")
+        # Convert raw text in this line into Posting data
+        posting = line.split(" : ")
+        token = str(posting[0].replace("'", ""))
+        postingList = posting[1].strip("][\n").split(", ")
 
-            # Collect data about the token from this line
-            newDocID = int(postingList[0])
-            newFreq = int(postingList[1])
-            newTag = str(postingList[2].strip("'"))
+        # Change types of items in postingList appropriately, store into variables
+        newDocID = int(postingList[0])
+        newFreq = int(postingList[1])
+        newTag = str(postingList[2].strip('"'))
 
-            # Create a new filename and filepath for this token
-            firstLetter = token[0:1]
-            filePathFull = Path("index") / firstLetter / (token + ".json")
+        # Create a new filename and filepath for this token
+        firstLetter = token[0:1]
+        filePathFull = Path("index") / firstLetter / (token + ".json")
 
-            # If file already exists, then we read it and update it
-            if filePathFull.is_file():
-                with open(filePathFull, "r+") as posting:
-                    # Add to the existing data and save updated values back to json
-                    data = posting.read()
-                    jsonObj = json.loads(data)
-                    jsonObj["docIDList"].append([newDocID, newFreq, newTag])
-                    jsonObj["docIDList"] = sorted(jsonObj["docIDList"])
-                    posting.seek(0)  # reset to beginning of file to overwrite
-                    posting.write(json.dumps(jsonObj))
-                    posting.truncate()
+        # If file already exists, then we read it and update it
+        if filePathFull.is_file():
+            with open(filePathFull, "r+") as posting:
+                # Add to the existing data and save updated values back to json
+                jsonDict = {}
+                data = posting.read()
+                jsonObj = json.loads(data)
+                jsonObj["docList"].append([newDocID, newFreq, newTag])
+                jsonObj["docList"] = sorted(jsonObj["docList"])
+                posting.seek(0)  # reset to beginning of file to overwrite
+                posting.write(json.dumps(jsonObj))
+                posting.truncate()
 
-            else:
-                # Otherwise, write it from scratch
-                jsonObj = {"docList": [[newDocID, newFreq, newTag]]}
-                with open(filePathFull, "w+") as posting:
-                    posting.write(json.dumps(jsonObj))
-        except Exception as e:
-            print(e)
-            continue
+        else:
+            # Otherwise, write it from scratch
+            jsonObj = {"docList": [[newDocID, newFreq, newTag]]}
+            with open(filePathFull, "w+") as posting:
+                posting.write(json.dumps(jsonObj))
 
 
 
@@ -219,16 +229,16 @@ def tokenize(fileItem: list) -> None:
             tagsTextList.append(soup.find_all(tag))
 
         ##### REDIS ONLY START #####
-        #urlContent = jsonOBJ["url"]
+        # urlContent = jsonOBJ["url"]
 
-        # return if html text has identical hash
-        # add all tokens found from html response with tags removed
+        # # return if html text has identical hash
+        # # Add all tokens found from html response with tags removed
         # varTemp = soup.get_text()
         # if util.isHashSame(varTemp):
         #    util.addDuplicateURL(docID, urlContent)
         #    return
 
-        # add unique url to redis
+        # # Add unique url to redis
         # util.addUniqueURL(docID, urlContent)
         ##### REDIS ONLY END #####
 
@@ -301,11 +311,11 @@ if __name__ == '__main__':
 
 
     # First Pass: Term frequency and Getting HTML tags
-    print("Creating partial index folders...")
-    createPartialIndexes()
+    #print("Creating partial index folders...")
+    #createPartialIndexes()
 
-    print("Parsing 'DEV' JSON files, building index.txt...")
-    parseJSONFiles(folderPath)
+    #print("Parsing 'DEV' JSON files, building index.txt...")
+    #parseJSONFiles(folderPath)
 
     print("Merging tokens from index.txt, storing token.JSON files into index...")
     mergeTokens()
