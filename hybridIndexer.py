@@ -1,4 +1,5 @@
-from multiprocessing import Pool, Queue, Lock
+#from multiprocessing import Pool, Queue, Lock
+from multiprocessing.dummy import Pool as ThreadPool
 from pathlib import Path
 import os
 import re
@@ -75,7 +76,7 @@ def parseJSONFiles(directoryPath: str) -> None:
     
     # https://stackoverflow.com/questions/2846653/how-can-i-use-threading-in-python
     # Make the Pool of workers
-    pool = Pool(processes=20)
+    pool = ThreadPool(processes=20)
     # Each worker get a directory from list above, and begin tokenizing all json files inside
     pool.map(tokenize, filePathsList)
     # Close the pool and wait for the work to finish
@@ -182,8 +183,8 @@ def getAllFilePaths(directoryPath: str) -> list:
         for files in Path(directory).iterdir():
             if files.is_file():
                 fullFilePath = directory / files.name
-                listFilePaths.append([iDocID, str(fullFilePath)])
-                hashTableIDToUrl[iDocID] = str(fullFilePath)
+                listFilePaths.append([int(iDocID), str(fullFilePath)])
+                hashTableIDToUrl[int(iDocID)] = str(fullFilePath)
                 iDocID += 1
 
     # Writes "hashtable" file that maps the docIDs to filepaths of those documents.

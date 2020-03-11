@@ -30,8 +30,10 @@ def createFinalIndex() -> None:
 def rewriteTokenFiles(indexPath: str) -> None:
     filePathsList = getAllFilePaths(indexPath)  # 1.3M+ small json files to process
     
+    # For testing only
     for filepath in filePathsList:
         calculateTFIDF(filepath)
+
     '''
     # https://stackoverflow.com/questions/2846653/how-can-i-use-threading-in-python
     # Make the Pool of workers
@@ -55,7 +57,7 @@ def getAllFilePaths(indexPath: str) -> list:
                       Path(Path(indexPath).joinpath(p)).is_dir()]
 
     # Gets all the token.json filepaths and adds them to a list to be processed in rewriteTokenFiles()
-    for subdir in subdirList[:1]:
+    for subdir in subdirList:
         for tokenFile in Path(subdir).iterdir():
             if tokenFile.is_file():
                 tokenFilePath = subdir / tokenFile.name
@@ -74,25 +76,25 @@ def calculateTFIDF(tokenFilePath : str) -> None:
     tokenFile = open(tokenFilePath, 'r')
     tokenFileText = tokenFile.read()
     tokenJSON = json.loads(tokenFileText)
-    docIDList = tokenJSON["docIDList"]
+    docList = tokenJSON["docList"]
     tokenFile.close()
         
     # Use token.json data to calculate TF-IDF score for each document
-    # Example of each docIDList per token: [[24494, 'a'], [26066, 'p'], [47854, 'div']]
+    # Example of each docList per token: [[24494, 'a'], [26066, 'p'], [47854, 'div']]
     # Save at the end as {docID : TFIDF_Score}
     newData = dict()
     newData["docList"] = dict()
-    for doc in docIDList:
+    for doc in docList:
         # Get name of the token.json file to rewrite it in finalIndex
         basename = os.path.basename(tokenFilePath)
-        filename = os.path.splitext(basename)
+        filename = os.path.splitext(basename)[0]
 
         # Calculate TF-IDF score for current document
         # doc[0] = DocID, doc[1] = RawDocTF, doc[2] = Tag
         boostPercent = makeBoostPercent(doc[2])
-        newData["docList"][doc[0]] = (1 + math.log(doc[1])) * math.log(N / len(docIDList)) * boostPercent
+        newData["docList"][int(doc[0])] = (1 + math.log(doc[1])) * math.log(N / len(docList)) * boostPercent
 
-        with open(os.path.join(finalIndexPath, f"{filename}"), 'w+') as newFile:
+        with open(os.path.join(finalIndexPath, f"{filename[0]}", f"{filename}.json"), 'w+') as newFile:
             json.dump(newData, newFile)
 
 
