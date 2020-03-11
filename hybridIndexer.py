@@ -67,7 +67,6 @@ def parseJSONFiles(directoryPath: str) -> None:
     # For testing only
     i = 0
     for path in filePathsList:
-        print(path)
         tokenize(path)
         i += 1
         if i > 100:
@@ -139,7 +138,7 @@ def mergeTokens():
         # Change types of items in postingList appropriately, store into variables
         newDocID = int(postingList[0])
         newFreq = int(postingList[1])
-        newTag = str(postingList[2].strip('"'))
+        newTag = str(postingList[2].strip("'"))
 
         # Create a new filename and filepath for this token
         firstLetter = token[0:1]
@@ -147,16 +146,14 @@ def mergeTokens():
 
         # If file already exists, then we read it and update it
         if filePathFull.is_file():
-            with open(filePathFull, "r+") as posting:
+            with open(filePathFull, "r+") as tokenJSON:
                 # Add to the existing data and save updated values back to json
-                jsonDict = {}
-                data = posting.read()
+                data = tokenJSON.read()
                 jsonObj = json.loads(data)
                 jsonObj["docList"].append([newDocID, newFreq, newTag])
                 jsonObj["docList"] = sorted(jsonObj["docList"])
-                posting.seek(0)  # reset to beginning of file to overwrite
-                posting.write(json.dumps(jsonObj))
-                posting.truncate()
+                tokenJSON.seek(0)  # reset to beginning of file to overwrite
+                tokenJSON.write(json.dumps(jsonObj))
 
         else:
             # Otherwise, write it from scratch
@@ -311,11 +308,11 @@ if __name__ == '__main__':
 
 
     # First Pass: Term frequency and Getting HTML tags
-    #print("Creating partial index folders...")
-    #createPartialIndexes()
+    print("Creating partial index folders...")
+    createPartialIndexes()
 
-    #print("Parsing 'DEV' JSON files, building index.txt...")
-    #parseJSONFiles(folderPath)
+    print("Parsing 'DEV' JSON files, building index.txt...")
+    parseJSONFiles(folderPath)
 
     print("Merging tokens from index.txt, storing token.JSON files into index...")
     mergeTokens()
