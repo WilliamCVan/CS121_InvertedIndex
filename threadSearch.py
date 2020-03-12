@@ -8,6 +8,8 @@ from nltk.stem import PorterStemmer
 import sys
 from importlib import reload
 
+
+
 def fetch_url(entry):
     path, uri = entry
     if not os.path.exists(path):

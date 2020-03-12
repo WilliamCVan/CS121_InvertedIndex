@@ -3,6 +3,8 @@ import nltk
 nltk.download('punkt')
 from nltk.stem import PorterStemmer
 
+
+
 def memoryParseIndex():
     indexpath = "C:\\Users\\aljon\\Documents\\CS121_InvertedIndex\\partial_indexes\\index.txt"
     dictMAIN = dict()
@@ -49,6 +51,7 @@ def memoryParseIndex():
     with open(minipath, 'w') as f:
         f.write(json.dumps(dictMAIN))
 
+
 def readDictionaryIntoMemory():
     minipath = "C:\\1_Repos\\developer\\partial_indexes\\mini_index.txt"
 
@@ -70,6 +73,7 @@ def readHashTable(folderPath):
         data = file.read()
         hashSet = json.loads(data)
         return hashSet
+
 
 
 if __name__ == '__main__':
