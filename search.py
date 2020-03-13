@@ -3,7 +3,6 @@ from pathlib import Path
 import os
 import re
 import json
-from bs4 import BeautifulSoup, Comment
 import string
 import math
 
@@ -73,14 +72,15 @@ def search(query, finalIndexPath):
 def getDocURLs(intersectedDocs, indexPath):
     listUrls = list()  # holds unique file paths of .json files
 
-    hashTablePath = Path(indexPath) / "hashtable.txt"
+    hashTablePath = Path(indexPath) / "hashurls.txt"
     with open(hashTablePath, "r") as file:
         data = file.read()
         hashSet = json.loads(data)
 
     for docID in intersectedDocs:
-        fileUrl = hashSet[docID]
-        listUrls.append( (fileUrl, intersectedDocs[docID]) )
+        if(docID in hashSet):
+            fileUrl = hashSet[docID]
+            listUrls.append( (fileUrl, intersectedDocs[docID]) )
 
     return listUrls
 
@@ -104,16 +104,31 @@ def intersectDicts(listOfDicts):
     return intersection
 
 
+def flaskBackendQuery(queryUser):
+    indexPath = "C:\\Anaconda3\\envs\\Projects\\developer"
+
+    unsortedDocs = search(queryUser, indexPath)
+
+    # Change filepaths to website URLs for displaying
+    unsortedURLs = getDocURLs(unsortedDocs, indexPath)
+
+    # Sort docs by the TF-IDF score
+    sortedURLs = sorted(unsortedURLs, key=lambda x: x[1], reverse=True)
+
+    return sortedURLs[0:10] #return 10 results
+
 
 if __name__ == '__main__':
     #####
     # Aljon
-    finalIndexPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\CS121_InvertedIndex\\final_index"
-    indexPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\CS121_InvertedIndex\\index"
+    # finalIndexPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\CS121_InvertedIndex\\final_index"
+    # indexPath = "C:\\Users\\aljon\\Documents\\CS_121\\Assignment_3\\CS121_InvertedIndex\\index"
 
     # William
-    #folderPath = "C:\\1_Repos\\developer\\partial_indexes"
-    #folderPath = "C:\\Anaconda3\\envs\\Projects\\developer\\partial_indexes"
+    # folderPath = "C:\\1_Repos\\developer\\partial_indexes"
+    # folderPath = "C:\\Anaconda3\\envs\\Projects\\developer\\partial_indexes"
+    indexPath = "C:\\Anaconda3\\envs\\Projects\\developer"
+    finalIndexPath = "C:\\Anaconda3\\envs\\Projects\\developer"
 
     # Jerome
     #folderPath = "C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\DEV"
