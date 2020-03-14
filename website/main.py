@@ -1,5 +1,9 @@
 from flask import Flask,render_template,flash,request,url_for,redirect
 import search as util
+from pathlib import Path
+import json
+from time import time as timer, perf_counter
+import GLOBALS
 
 app = Flask(__name__)
 
@@ -11,7 +15,22 @@ def home():
 def results():
     queryUser=request.form.get("query")
 
-    urlss = util.flaskBackendQuery(queryUser)
+    ### warm the cache with urls ###
+    indexPath = GLOBALS.REG_INDEX
+
+    hashTablePath = Path(indexPath) / "hashurls.txt"
+    with open(hashTablePath, "r") as file:
+        data = file.read()
+        cacheURLs = json.loads(data)
+
+    t1_start = perf_counter()
+    start = timer()  # timer 2
+
+    urlss = util.flaskBackendQuery(queryUser, cacheURLs)
+
+    t1_stop = perf_counter()
+    print("--- %.8f seconds ---" % (t1_stop - t1_start))
+    print(f"Elapsed Time: {timer() - start}")  # timer 2
 
     listUrlOnly = list()
     for doc in urlss:

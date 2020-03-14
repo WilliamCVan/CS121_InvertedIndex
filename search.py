@@ -5,8 +5,7 @@ import re
 import json
 import string
 import math
-
-
+import GLOBALS
 
 stopWords = {"a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't",
              "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by",
@@ -69,17 +68,17 @@ def search(query, finalIndexPath):
     return intersectDicts(listOfDicts)
 
 
-def getDocURLs(intersectedDocs, indexPath):
+def getDocURLs(intersectedDocs, indexPath, cacheURLs):
     listUrls = list()  # holds unique file paths of .json files
-
-    hashTablePath = Path(indexPath) / "hashurls.txt"
-    with open(hashTablePath, "r") as file:
-        data = file.read()
-        hashSet = json.loads(data)
+    #
+    # hashTablePath = Path(indexPath) / "hashurls.txt"
+    # with open(hashTablePath, "r") as file:
+    #     data = file.read()
+    #     hashSet = json.loads(data)
 
     for docID in intersectedDocs:
-        if(docID in hashSet):
-            fileUrl = hashSet[docID]
+        if(docID in cacheURLs):
+            fileUrl = cacheURLs[docID]
             listUrls.append( (fileUrl, intersectedDocs[docID]) )
 
     return listUrls
@@ -104,13 +103,13 @@ def intersectDicts(listOfDicts):
     return intersection
 
 
-def flaskBackendQuery(queryUser):
-    indexPath = "C:\\Anaconda3\\envs\\Projects\\developer"
+def flaskBackendQuery(queryUser, cacheURLs):
+    indexPath = GLOBALS.FINAL_INDEX
 
     unsortedDocs = search(queryUser, indexPath)
 
     # Change filepaths to website URLs for displaying
-    unsortedURLs = getDocURLs(unsortedDocs, indexPath)
+    unsortedURLs = getDocURLs(unsortedDocs, indexPath, cacheURLs)
 
     # Sort docs by the TF-IDF score
     sortedURLs = sorted(unsortedURLs, key=lambda x: x[1], reverse=True)
@@ -127,8 +126,8 @@ if __name__ == '__main__':
     # William
     # folderPath = "C:\\1_Repos\\developer\\partial_indexes"
     # folderPath = "C:\\Anaconda3\\envs\\Projects\\developer\\partial_indexes"
-    indexPath = "C:\\Anaconda3\\envs\\Projects\\developer"
-    finalIndexPath = "C:\\Anaconda3\\envs\\Projects\\developer"
+    indexPath = "C:\\1_Repos\\developer"
+    finalIndexPath = "C:\\1_Repos\\developer"
 
     # Jerome
     #folderPath = "C:\\Users\\arkse\\Desktop\\CS121_InvertedIndex\\DEV"
