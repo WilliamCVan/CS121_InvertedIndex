@@ -1,3 +1,9 @@
+Notes on running our program:
+- Run hybridIndexer.py to create first pass of index
+- Run tfidfIndexer.py to create final pass of index
+- Run main.py in /website to run search engine, click link of IP address printed in terminal.
+
+
 Bad Queries:
 1) {Apathy,Apes} 0.00302 secs irrelevant queries
 2) {Bernie,Sanders,super,tuesday} 0.0386 secs irrelevant queries
