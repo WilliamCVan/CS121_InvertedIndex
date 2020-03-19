@@ -7,17 +7,19 @@ import GLOBALS
 
 app = Flask(__name__)
 
+# home page, with search bar at this url http://localhost:5000/
 @app.route("/")
 def home():
     return render_template("index.html")
 
 @app.route("/query", methods=["POST"])
 def results():
-    queryUser=request.form.get("query")
+    queryUser=request.form.get("query") # get keywords typed by user
 
     ### warm the cache with urls ###
     indexPath = GLOBALS.REG_INDEX
 
+    #read hashurls.txt into memory, to read out urls from docID's
     hashTablePath = Path(indexPath) / "hashurls.txt"
     with open(hashTablePath, "r") as file:
         data = file.read()

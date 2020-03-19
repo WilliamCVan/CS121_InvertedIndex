@@ -34,17 +34,6 @@ def rewriteTokenFiles(indexPath: str) -> None:
     for filepath in filePathsList:
         calculateTFIDF(filepath)
 
-    '''
-    # https://stackoverflow.com/questions/2846653/how-can-i-use-threading-in-python
-    # Make the Pool of workers
-    pool = Pool(processes=20)
-    # Each worker get a directory from list above, and begin tokenizing all json files inside
-    pool.map(calculateTFIDF, filePathsList)
-    # Close the pool and wait for the work to finish
-    pool.close()
-    pool.join()'''
-
-
 
 ### Helper Functions (aka functions called by other functions) ###
 

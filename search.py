@@ -34,7 +34,7 @@ stopWords = {"a", "about", "above", "after", "again", "against", "all", "am", "a
 
 # Main Functions (aka functions called in __main__)
 
-# Takes in query as str. Returns list of docs that match the AND query
+# Takes in query as str. Returns list of docs that match the OR query (inclusive)
 def search(query, finalIndexPath):
     listOfDicts = list()
     queryList = set()   # We use set() to remove duplicate terms, and we won't have to open a file twice
@@ -96,9 +96,9 @@ def intersectDicts(listOfDicts):
     for dictItem in listOfDicts:
         for doc in dictItem:
             if doc not in intersection:
-                intersection[doc] = dictItem[doc]
+                intersection[doc] = dictItem[doc] #
             else:
-                intersection[doc] += dictItem[doc]
+                intersection[doc] += dictItem[doc] #adding tfidf weights
     print("intersection = ", intersection)
     return intersection
 
@@ -106,13 +106,16 @@ def intersectDicts(listOfDicts):
 def flaskBackendQuery(queryUser, cacheURLs):
     indexPath = GLOBALS.FINAL_INDEX
 
-    unsortedDocs = search(queryUser, indexPath)
+    if (queryUser.strip() == ""):
+        print("Query needs to be at least one character")
+
+    unsortedDocs = search(queryUser, indexPath) #list of dictionaries
 
     # Change filepaths to website URLs for displaying
     unsortedURLs = getDocURLs(unsortedDocs, indexPath, cacheURLs)
 
     # Sort docs by the TF-IDF score
-    sortedURLs = sorted(unsortedURLs, key=lambda x: x[1], reverse=True)
+    sortedURLs = sorted(unsortedURLs, key=lambda x: x[1], reverse=True) #highest scores shown first
 
     return sortedURLs[0:10] #return 10 results
 
@@ -142,7 +145,8 @@ if __name__ == '__main__':
 
     # Get query from user
     query = input("Enter a search query: ")
-
+    if(query.strip() == ""):
+        print("Query needs to be at least one character")
     # Fetch all results of query, intersect them to follow Bool-AND logic
     unsortedDocs = search(query, finalIndexPath)
 

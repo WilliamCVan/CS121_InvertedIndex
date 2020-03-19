@@ -65,16 +65,6 @@ def createPartialIndexes() -> None:
 def parseJSONFiles(directoryPath: str) -> None:
     filePathsList = getAllFilePaths(directoryPath)  # 55K+ json files to process
 
-    # For testing only
-    i = 0
-    for path in filePathsList:
-        tokenize(path)
-        i += 1
-        if i > 100:
-          break  
-    return
-    
-    # https://stackoverflow.com/questions/2846653/how-can-i-use-threading-in-python
     # Make the Pool of workers
     pool = ThreadPool(processes=20)
     # Each worker get a directory from list above, and begin tokenizing all json files inside
@@ -83,7 +73,7 @@ def parseJSONFiles(directoryPath: str) -> None:
     pool.close()
     pool.join()
 
-
+# creates hashurlt.txt that is used for search to diplay url results
 def urlHashTableBuilder(directoryPath) -> None:
     uniqueURLDict = dict()  # holds docID : url
     dupeURLDict = dict()
@@ -195,6 +185,8 @@ def getAllFilePaths(directoryPath: str) -> list:
 
 
 # Tokenizes and collects data from one json file from the "DEV" corpus
+# creates a dictionary that is cached, lemmatized words are saved in here
+# saves up to 50,000 lemmatized words in memory
 def tokenize(fileItem: list) -> None:
     ps = PorterStemmer().stem
     wnl = WordNetLemmatizer()
@@ -258,12 +250,18 @@ def tokenize(fileItem: list) -> None:
                     continue
                 if (len(word) == 1 and word.isalpha()):  # ignore single characters
                     continue
+
+                # will not change numbers/digits
+                # lemmatized things that are 3 letter or greater
                 if not any(char.isdigit() for char in word) and len(word) > 2 and word not in lemmaCache:
                     # Lemmatization of a word with a number is usually itself.
                     # lemmatization of in, on, as, is usually itself.
                     # Checking for the above and if word is not already cached saves time.
+                    # gets the part of speech or a word, to make lemmatization more accurate
                     pos = tag_map[pos_tag((word,))[0][1][0]]
-                    lemWord = lem(word, pos)
+                    lemWord = lem(word, pos) # lemmatized word
+
+                    #catches words that lemmatization misses and porter stemmer in its place
                     if word[-2:] == "ly" or word[-4:] == "ness" or word[-3:] == "ish":  # Catches any ly, ness, or ish that lemmatize doesnt catch. Words are less accurate, but cuts off extraneous words.
                         lemWord = ps(word)
                     lemmaCache[word] = lemWord
@@ -275,8 +273,7 @@ def tokenize(fileItem: list) -> None:
                 else:
                     tokenDict[lemmaCache[word]] = Posting(docID, 1, tag)
 
-                if len(
-                        lemmaCache) > 5000000:  # Save up to 5million tokens, and then clear to prevent too much memory error
+                if len(lemmaCache) > 5000000:  # Save up to 5million tokens, and then clear to prevent too much memory error
                     lemmaCache.clear()
 
         # Write tokens and their Postings to a text file ("store on disk")

@@ -10,6 +10,7 @@ HASH_SAME = "hashSame"
 UNIQUE_URL = "uniqueURL"
 DUPLICATE_URL = "duplicateURL"
 
+# EC is page content/html content the same, samehash check
 def isHashSame(varTemp) -> bool:
     hashOut = hashlib.md5(varTemp.encode('utf-8')).hexdigest()
 
@@ -30,6 +31,7 @@ def _removeFragment(str):
     str = str.split('#')[0]
     return str
 
+#writes all urls taken from .json files to a single file
 def _writeUrlsToDisk() -> None:
     content = r.hgetall(UNIQUE_URL)
     # for hash in r.hscan_iter('UNIQUE_URL'):
